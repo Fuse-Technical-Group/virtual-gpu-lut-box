@@ -1,37 +1,23 @@
-"""macOS Syphon streaming backend."""
+"""macOS Syphon streaming backend using Metal."""
 
 from __future__ import annotations
 
 import numpy as np
 import platform
+import time
 from typing import Optional, Any
 
 from .base import StreamingBackend, InitializationError
 
 try:
-    import OpenGL.GL as gl
-    import OpenGL.arrays.vbo as glvbo
-    from OpenGL.platform import CurrentContextIsValid
-    OPENGL_AVAILABLE = True
+    import Metal
+    METAL_AVAILABLE = True
 except ImportError:
-    OPENGL_AVAILABLE = False
-
-# Try to import context creation libraries
-try:
-    # Try GLFW first (modern)
-    import glfw
-    CONTEXT_LIB = 'glfw'
-except ImportError:
-    try:
-        # Fall back to pyglet
-        import pyglet
-        CONTEXT_LIB = 'pyglet'
-    except ImportError:
-        CONTEXT_LIB = None
+    METAL_AVAILABLE = False
 
 
 class SyphonBackend(StreamingBackend):
-    """macOS Syphon streaming backend."""
+    """macOS Syphon streaming backend using Metal."""
 
     def __init__(self, name: str, width: int, height: int) -> None:
         """Initialize Syphon backend.
@@ -44,8 +30,11 @@ class SyphonBackend(StreamingBackend):
         super().__init__(name, width, height)
         self._server: Optional[Any] = None
         self._syphon: Optional[Any] = None
-        self._gl_context: Optional[Any] = None
-        self._texture_id: Optional[int] = None
+        self._device: Optional[Any] = None
+        self._command_queue: Optional[Any] = None
+        self._texture: Optional[Any] = None
+        self._frame_count = 0
+        self._last_fps_check = time.time()
 
     def is_available(self) -> bool:
         """Check if Syphon is available on this platform.
@@ -57,15 +46,15 @@ class SyphonBackend(StreamingBackend):
         if platform.system() != "Darwin":
             return False
 
-        # Try to import syphonpy and OpenGL
+        # Try to import syphon-python and Metal
         try:
-            import syphonpy
-            return OPENGL_AVAILABLE
+            import syphon
+            return METAL_AVAILABLE
         except ImportError:
             return False
 
     def initialize(self) -> bool:
-        """Initialize the Syphon server.
+        """Initialize the Syphon Metal server.
 
         Returns:
             True if initialization successful, False otherwise
@@ -77,48 +66,44 @@ class SyphonBackend(StreamingBackend):
             return False
 
         try:
-            # Import syphonpy
-            import syphonpy
+            # Import syphon-python
+            import syphon
 
             # Store reference to syphon module
-            self._syphon = syphonpy
+            self._syphon = syphon
 
-            # Initialize OpenGL context and texture
-            if not self._init_opengl():
+            # Initialize Metal device and command queue
+            if not self._init_metal():
                 return False
 
-            # IMPORTANT: Create Syphon server AFTER OpenGL context is current
-            # Make sure context is current
-            if self._gl_context and CONTEXT_LIB == 'glfw':
-                glfw.make_context_current(self._gl_context)
-            
-            # Create Syphon server with current OpenGL context
-            print(f"🎥 Creating Syphon server with name: '{self.name}'")
-            self._server = syphonpy.SyphonServer(self.name)
+            # Create Syphon Metal server
+            print(f"🎥 Creating Syphon Metal server with name: '{self.name}'")
+            self._server = syphon.SyphonMetalServer(
+                self.name, 
+                device=self._device, 
+                command_queue=self._command_queue
+            )
 
             if self._server is not None:
                 self._initialized = True
-                print(f"✅ Syphon server '{self.name}' created successfully")
+                print(f"✅ Syphon Metal server '{self.name}' created successfully")
+                print(f"📱 Metal device: {self._device.name()}")
                 return True
             else:
-                print(f"❌ Failed to create Syphon server '{self.name}'")
+                print(f"❌ Failed to create Syphon Metal server '{self.name}'")
                 return False
 
         except Exception as e:
-            raise InitializationError(f"Failed to initialize Syphon: {e}")
+            raise InitializationError(f"Failed to initialize Syphon Metal: {e}")
 
     def send_texture(self, texture_data: np.ndarray) -> bool:
-        """Send texture data via Syphon.
+        """Send texture data via Syphon Metal.
 
         Args:
             texture_data: Texture data as numpy array (height, width, 3 or 4)
 
         Returns:
             True if send successful, False otherwise
-            
-        Note:
-            Current syphonpy implementation requires OpenGL texture IDs.
-            This method is a placeholder for future OpenGL integration.
         """
         if not self._initialized or self._server is None:
             return False
@@ -127,138 +112,44 @@ class SyphonBackend(StreamingBackend):
             return False
 
         try:
-            # Ensure OpenGL context is current
-            if self._gl_context and CONTEXT_LIB == 'glfw':
-                glfw.make_context_current(self._gl_context)
-            
-            # Upload numpy array to OpenGL texture
-            if not self._upload_texture_data(texture_data):
+            # Create or update Metal texture
+            if not self._create_metal_texture(texture_data):
                 return False
 
-            # Create rect and size for Syphon
-            rect = self._syphon.MakeRect(0, 0, self.width, self.height)
-            size = self._syphon.MakeSize(self.width, self.height)
+            # Publish frame via Syphon Metal server
+            self._server.publish_frame_texture(self._texture)
 
-            # CRITICAL: Unbind texture so Syphon can access it
-            # Texture must be unbound for sharing to work
-            gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-            
-            # Flush OpenGL commands to ensure texture upload is complete
-            gl.glFlush()
-            
-            # Stream via Syphon using OpenGL texture ID exactly like tester.py
-            # Texture must be unbound for Syphon to access it  
-            self._server.publish_frame_texture(self._texture_id, rect, size, False)
-            
-            # Force OpenGL synchronization to ensure Syphon can read texture
-            gl.glFinish()
-            
-            # Log first frame only
-            if not hasattr(self, '_first_frame_logged'):
-                print(f"📺 Started streaming to Syphon server '{self.name}'")
-                self._first_frame_logged = True
-            
+            # Update frame counter and log FPS periodically
+            self._frame_count += 1
+            current_time = time.time()
+            if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
+                elapsed = current_time - self._last_fps_check
+                fps = (self._frame_count - (getattr(self, '_last_frame_count', 0))) / elapsed
+                print(f"📊 Syphon Metal streaming: {fps:.1f} FPS, Clients: {self.has_clients}")
+                self._last_frame_count = self._frame_count
+                self._last_fps_check = current_time
+
             return True
 
         except Exception as e:
-            print(f"⚠️  Syphon streaming error: {e}")
+            print(f"⚠️  Syphon Metal streaming error: {e}")
             return False
 
-    def _prepare_syphon_data(self, texture_data: np.ndarray) -> np.ndarray:
-        """Prepare texture data for Syphon.
-
-        Args:
-            texture_data: Input texture data
-
-        Returns:
-            Texture data formatted for Syphon
-        """
-        height, width, channels = texture_data.shape
-
-        # Convert to uint8 if needed
-        if texture_data.dtype == np.float32:
-            data = (texture_data * 255).astype(np.uint8)
-        else:
-            data = texture_data.astype(np.uint8)
-
-        # Syphon typically expects RGBA format
-        if channels == 3:
-            # Add alpha channel
-            alpha = np.full((height, width, 1), 255, dtype=np.uint8)
-            data = np.concatenate([data, alpha], axis=2)
-        elif channels == 4:
-            # Already RGBA
-            pass
-        else:
-            raise ValueError(f"Unsupported channel count: {channels}")
-
-        # Ensure contiguous array
-        data = np.ascontiguousarray(data)
-
-        return data
-
-    def _prepare_syphon_data_rgb(self, texture_data: np.ndarray) -> np.ndarray:
-        """Prepare texture data for Syphon using RGB format like tester.py.
-
-        Args:
-            texture_data: Input texture data
-
-        Returns:
-            Texture data formatted as RGB for Syphon (like tester.py)
-        """
-        height, width, channels = texture_data.shape
-
-        # Convert to uint8 if needed
-        if texture_data.dtype == np.float32:
-            data = (texture_data * 255).astype(np.uint8)
-        else:
-            data = texture_data.astype(np.uint8)
-
-        # Convert to RGB only (no alpha) like tester.py
-        if channels == 3:
-            # Already RGB
-            rgb_data = data
-        elif channels == 4:
-            # Remove alpha channel
-            rgb_data = data[:, :, :3]
-        else:
-            raise ValueError(f"Unsupported channel count: {channels}")
-
-        # Ensure contiguous array
-        rgb_data = np.ascontiguousarray(rgb_data)
-
-        return rgb_data
-
     def cleanup(self) -> None:
-        """Clean up Syphon and OpenGL resources."""
+        """Clean up Syphon and Metal resources."""
         if self._server is not None:
-            print(f"🛑 Stopping Syphon server '{self.name}'")
+            print(f"🛑 Stopping Syphon Metal server '{self.name}'")
             try:
                 self._server.stop()
-                print(f"✅ Syphon server '{self.name}' stopped successfully")
+                print(f"✅ Syphon Metal server '{self.name}' stopped successfully")
             except Exception as e:
-                print(f"⚠️  Error stopping Syphon server '{self.name}': {e}")
+                print(f"⚠️  Error stopping Syphon Metal server '{self.name}': {e}")
             self._server = None
 
-        # Clean up OpenGL texture
-        if self._texture_id is not None and OPENGL_AVAILABLE:
-            try:
-                gl.glDeleteTextures([self._texture_id])
-            except Exception:
-                pass  # Ignore cleanup errors
-            self._texture_id = None
-
-        # Clean up OpenGL context
-        if self._gl_context is not None:
-            try:
-                if CONTEXT_LIB == 'glfw':
-                    glfw.destroy_window(self._gl_context)
-                    glfw.terminate()
-                elif CONTEXT_LIB == 'pyglet':
-                    self._gl_context.close()
-            except Exception:
-                pass  # Ignore cleanup errors
-            self._gl_context = None
+        # Clean up Metal resources
+        self._texture = None
+        self._command_queue = None
+        self._device = None
         self._syphon = None
         self._initialized = False
 
@@ -282,56 +173,25 @@ class SyphonBackend(StreamingBackend):
             "height": self.height,
             "initialized": self._initialized,
             "platform": "macOS",
-            "backend": "Syphon",
+            "backend": "Syphon Metal",
+            "frame_count": self._frame_count,
         }
 
         if self._initialized and self._server is not None:
             try:
-                # Get additional info from Syphon if available
-                info.update(
-                    {
-                        "server_active": True,
-                        "supported_formats": self.get_supported_formats(),
-                    }
-                )
+                info.update({
+                    "server_active": True,
+                    "has_clients": self.has_clients,
+                    "supported_formats": self.get_supported_formats(),
+                    "metal_device": self._device.name() if self._device else "Unknown",
+                })
             except Exception:
                 pass
 
         return info
 
-    def list_clients(self) -> list[dict[str, str]]:
-        """List connected Syphon clients.
-
-        Returns:
-            List of client info dictionaries
-        """
-        if not self._initialized or self._syphon is None:
-            return []
-
-        try:
-            # Get list of Syphon clients
-            clients = self._syphon.SyphonServerDirectory.get_clients()
-            return clients if clients else []
-        except Exception:
-            return []
-
-    def list_servers(self) -> list[dict[str, str]]:
-        """List available Syphon servers.
-
-        Returns:
-            List of server info dictionaries
-        """
-        if not self._initialized or self._syphon is None:
-            return []
-
-        try:
-            # Get list of Syphon servers
-            servers = self._syphon.SyphonServerDirectory.get_servers()
-            return servers if servers else []
-        except Exception:
-            return []
-
-    def is_client_connected(self) -> bool:
+    @property
+    def has_clients(self) -> bool:
         """Check if any clients are connected.
 
         Returns:
@@ -341,9 +201,7 @@ class SyphonBackend(StreamingBackend):
             return False
 
         try:
-            # Check if there are active clients
-            clients = self.list_clients()
-            return len(clients) > 0
+            return self._server.has_clients
         except Exception:
             return False
 
@@ -357,7 +215,11 @@ class SyphonBackend(StreamingBackend):
             return 0.0
 
         try:
-            # Return estimated frame rate
+            # Calculate FPS based on frame count
+            if hasattr(self, '_last_fps_check') and hasattr(self, '_last_frame_count'):
+                elapsed = time.time() - self._last_fps_check
+                if elapsed > 0:
+                    return (self._frame_count - self._last_frame_count) / elapsed
             return 60.0  # Default assumption
         except Exception:
             return 0.0
@@ -405,56 +267,135 @@ class SyphonBackend(StreamingBackend):
         if hald_image.shape[:2] != (self.height, self.width):
             return False
 
-        # Convert to RGBA format for Syphon
+        # Convert to RGBA format for Metal
         rgba_data = self.convert_texture_format(hald_image, "rgba")
 
         # Send texture
         return self.send_texture(rgba_data)
 
     def get_metal_device_info(self) -> dict[str, str]:
-        """Get Metal device information (macOS specific).
+        """Get Metal device information.
 
         Returns:
             Dictionary with Metal device info
         """
         info = {}
 
-        if self._initialized:
+        if self._initialized and self._device:
             try:
-                # Get Metal device info if available
-                info.update(
-                    {
-                        "device_name": "Unknown Metal Device",
-                        "device_description": "macOS Metal Graphics Device",
-                    }
-                )
+                info.update({
+                    "device_name": self._device.name(),
+                    "device_description": f"Metal Device: {self._device.name()}",
+                    "supports_unified_memory": str(self._device.hasUnifiedMemory()),
+                    "max_texture_size": "16384x16384",  # Metal typical limit
+                })
             except Exception:
                 pass
 
         return info
 
-    def get_opengl_info(self) -> dict[str, str]:
-        """Get OpenGL information.
+    def get_texture_format_info(self) -> dict[str, Any]:
+        """Get texture format information.
 
         Returns:
-            Dictionary with OpenGL info
+            Dictionary with texture format info
         """
-        info = {}
+        return {
+            "preferred_format": "RGBA",
+            "supported_formats": self.get_supported_formats(),
+            "bit_depth": 8,
+            "color_space": "sRGB",
+            "alpha_support": True,
+            "backend": "Metal",
+        }
 
-        if self._initialized:
-            try:
-                # Get OpenGL info if available
-                info.update(
-                    {
-                        "renderer": "Unknown OpenGL Renderer",
-                        "version": "Unknown OpenGL Version",
-                        "vendor": "Unknown Vendor",
-                    }
-                )
-            except Exception:
-                pass
+    def _init_metal(self) -> bool:
+        """Initialize Metal device and command queue.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not METAL_AVAILABLE:
+            return False
 
-        return info
+        try:
+            # Create Metal device
+            self._device = Metal.MTLCreateSystemDefaultDevice()
+            if self._device is None:
+                print("❌ No Metal device available")
+                return False
+
+            # Create command queue
+            self._command_queue = self._device.newCommandQueue()
+            if self._command_queue is None:
+                print("❌ Failed to create Metal command queue")
+                return False
+
+            print(f"✅ Metal device initialized: {self._device.name()}")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Metal initialization failed: {e}")
+            return False
+
+    def _create_metal_texture(self, texture_data: np.ndarray) -> bool:
+        """Create Metal texture from numpy array.
+        
+        Args:
+            texture_data: Texture data as numpy array
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not METAL_AVAILABLE or self._device is None:
+            return False
+
+        try:
+            # Prepare texture data
+            height, width, channels = texture_data.shape
+            
+            # Convert to RGBA format if needed
+            if channels == 3:
+                # Add alpha channel
+                alpha = np.full((height, width, 1), 255, dtype=np.uint8)
+                rgba_data = np.concatenate([texture_data, alpha], axis=2)
+            elif channels == 4:
+                rgba_data = texture_data
+            else:
+                raise ValueError(f"Unsupported channel count: {channels}")
+
+            # Convert to uint8 if needed
+            if rgba_data.dtype == np.float32:
+                rgba_data = (rgba_data * 255).astype(np.uint8)
+            else:
+                rgba_data = rgba_data.astype(np.uint8)
+
+            # Ensure contiguous array
+            rgba_data = np.ascontiguousarray(rgba_data)
+
+            # Create texture descriptor
+            texture_desc = Metal.MTLTextureDescriptor.texture2DDescriptorWithPixelFormat_width_height_mipmapped_(
+                Metal.MTLPixelFormatRGBA8Unorm, width, height, False
+            )
+            texture_desc.setUsage_(Metal.MTLTextureUsageShaderRead | Metal.MTLTextureUsageShaderWrite)
+
+            # Create the texture
+            self._texture = self._device.newTextureWithDescriptor_(texture_desc)
+
+            # Upload data to texture
+            region = Metal.MTLRegion(
+                Metal.MTLOrigin(0, 0, 0), 
+                Metal.MTLSize(width, height, 1)
+            )
+            self._texture.replaceRegion_mipmapLevel_withBytes_bytesPerRow_(
+                region, 0, rgba_data.tobytes(), width * 4
+            )
+
+            return True
+            
+        except Exception as e:
+            print(f"⚠️  Metal texture creation failed: {e}")
+            return False
 
     def set_server_name(self, name: str) -> bool:
         """Set the Syphon server name.
@@ -478,138 +419,34 @@ class SyphonBackend(StreamingBackend):
         except Exception:
             return False
 
-    def get_texture_format_info(self) -> dict[str, Any]:
-        """Get texture format information.
+    def list_clients(self) -> list[dict[str, str]]:
+        """List connected Syphon clients.
 
         Returns:
-            Dictionary with texture format info
+            List of client info dictionaries
         """
-        return {
-            "preferred_format": "RGBA",
-            "supported_formats": self.get_supported_formats(),
-            "bit_depth": 8,
-            "color_space": "sRGB",
-            "alpha_support": True,
-        }
-
-    def _init_opengl(self) -> bool:
-        """Initialize OpenGL context and create texture.
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        if not OPENGL_AVAILABLE or CONTEXT_LIB is None:
-            return False
+        if not self._initialized or self._syphon is None:
+            return []
 
         try:
-            # Create OpenGL context if needed
-            if not self._create_gl_context():
-                return False
+            # Get list of Syphon clients from server directory
+            directory = self._syphon.SyphonServerDirectory()
+            return directory.get_clients() if hasattr(directory, 'get_clients') else []
+        except Exception:
+            return []
 
-            # Create OpenGL texture
-            self._texture_id = gl.glGenTextures(1)
-            
-            # Bind and configure texture exactly like tester.py
-            gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-            gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT)
-            gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT)
-            gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-            gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
-            
-            # NOTE: Don't pre-initialize texture - let gluBuild2DMipmaps handle it
-            # This matches the syphonpy tester.py approach
-            
-            gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-            
-            return True
-            
-        except Exception as e:
-            print(f"⚠️  OpenGL initialization failed: {e}")
-            return False
+    def list_servers(self) -> list[dict[str, str]]:
+        """List available Syphon servers.
 
-    def _create_gl_context(self) -> bool:
-        """Create OpenGL context for headless rendering.
-        
         Returns:
-            True if successful, False otherwise
+            List of server info dictionaries
         """
-        try:
-            # Check if we already have a valid context
-            if CurrentContextIsValid():
-                return True
-
-            if CONTEXT_LIB == 'glfw':
-                # Initialize GLFW
-                if not glfw.init():
-                    return False
-                
-                # Create invisible window for context
-                glfw.window_hint(glfw.VISIBLE, False)
-                glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-                glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-                
-                self._gl_context = glfw.create_window(1, 1, "Syphon Context", None, None)
-                if not self._gl_context:
-                    glfw.terminate()
-                    return False
-                
-                glfw.make_context_current(self._gl_context)
-                return True
-                
-            elif CONTEXT_LIB == 'pyglet':
-                # Create headless context with pyglet
-                config = pyglet.gl.Config(double_buffer=False)
-                self._gl_context = pyglet.window.Window(
-                    width=1, height=1, visible=False, config=config
-                )
-                self._gl_context.switch_to()
-                return True
-                
-            return False
-            
-        except Exception as e:
-            print(f"⚠️  OpenGL context creation failed: {e}")
-            return False
-
-    def _upload_texture_data(self, texture_data: np.ndarray) -> bool:
-        """Upload numpy array to OpenGL texture.
-        
-        Args:
-            texture_data: Texture data as numpy array
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not OPENGL_AVAILABLE or self._texture_id is None:
-            return False
+        if not self._initialized or self._syphon is None:
+            return []
 
         try:
-            # Convert to format expected by OpenGL (RGB only, like tester.py)
-            gl_data = self._prepare_syphon_data_rgb(texture_data)
-            
-            # Set proper pixel unpacking parameters
-            gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1)
-            
-            # Bind texture and upload using gluBuild2DMipmaps like tester.py
-            gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-            
-            # Use gluBuild2DMipmaps exactly like the syphonpy tester
-            from OpenGL.GLU import gluBuild2DMipmaps
-            gluBuild2DMipmaps(
-                gl.GL_TEXTURE_2D, gl.GL_RGB, 
-                self.width, self.height, 
-                gl.GL_RGB, gl.GL_UNSIGNED_BYTE, gl_data
-            )
-            # NOTE: Keep texture bound for Syphon - unbinding happens in send_texture()
-            
-            # Check for OpenGL errors
-            error = gl.glGetError()
-            if error != gl.GL_NO_ERROR:
-                print(f"OpenGL error in texture upload: {error}")
-                return False
-            
-            return True
-            
-        except Exception as e:
-            print(f"⚠️  Texture upload failed: {e}")
-            return False
+            # Get list of Syphon servers from server directory
+            directory = self._syphon.SyphonServerDirectory()
+            return directory.get_servers() if hasattr(directory, 'get_servers') else []
+        except Exception:
+            return []

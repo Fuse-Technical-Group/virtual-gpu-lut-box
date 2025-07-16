@@ -34,7 +34,7 @@ dependencies = [
     "click>=8.0.0",
     # Platform-specific streaming dependencies
     "SpoutGL>=0.1.0; platform_system=='Windows'",
-    "syphonpy>=0.0.2; platform_system=='Darwin'",
+    "syphon-python>=0.1.1; platform_system=='Darwin'",
     "PyOpenGL>=3.1.0; platform_system=='Windows' or platform_system=='Darwin'",
     "glfw>=2.5.0; platform_system=='Darwin'",
 ]
@@ -129,6 +129,7 @@ module = [
     "SpoutGL.*",
     "syphon.*",
     "OpenGL.*",
+    "Metal.*",
 ]
 ignore_missing_imports = true
 
@@ -179,4 +180,6 @@ directory = "htmlcov"
 [dependency-groups]
 dev = [
     "build>=1.2.2.post1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
 ]
