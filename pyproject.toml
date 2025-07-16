@@ -1,0 +1,182 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "virtual-gpu-lut-box"
+dynamic = ["version"]
+description = "Cross-platform LUT streaming for GPU shaders via Spout and Syphon"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Virtual GPU LUT Box", email = "support@example.com"},
+]
+maintainers = [
+    {name = "Virtual GPU LUT Box", email = "support@example.com"},
+]
+keywords = ["lut", "gpu", "shader", "spout", "syphon", "color-correction", "livegrading"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.9,<3.11"
+dependencies = [
+    "numpy>=1.21.0",
+    "pillow>=9.0.0",
+    "click>=8.0.0",
+    # Platform-specific streaming dependencies
+    "SpoutGL>=0.1.0; platform_system=='Windows'",
+    "syphonpy>=0.0.2; platform_system=='Darwin'",
+    "PyOpenGL>=3.1.0; platform_system=='Windows' or platform_system=='Darwin'",
+    "glfw>=2.5.0; platform_system=='Darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pre-commit>=3.0.0",
+    "invoke>=2.0.0",
+    "build>=0.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/virtual-gpu-lut-box"
+Repository = "https://github.com/example/virtual-gpu-lut-box"
+Issues = "https://github.com/example/virtual-gpu-lut-box/issues"
+Documentation = "https://github.com/example/virtual-gpu-lut-box#readme"
+
+[project.scripts]
+virtual-gpu-lut-box = "virtual_gpu_lut_box.cli:main"
+
+[tool.hatch.version]
+path = "src/virtual_gpu_lut_box/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/virtual_gpu_lut_box"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "S",  # flake8-bandit
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "S101",  # use of assert
+    "T201",  # print statements (allowed in CLI)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T201"]
+"src/virtual_gpu_lut_box/cli.py" = ["T201"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "SpoutGL.*",
+    "syphon.*",
+    "OpenGL.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=virtual_gpu_lut_box",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "windows: marks tests as Windows-specific",
+    "macos: marks tests as macOS-specific",
+]
+
+[tool.coverage.run]
+source = ["src/virtual_gpu_lut_box"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+]
