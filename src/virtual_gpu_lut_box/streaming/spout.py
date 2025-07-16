@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-import numpy as np
+import contextlib
+import importlib.util
 import platform
-from typing import Optional, Any
+from typing import Any
 
-from .base import StreamingBackend, StreamingError, InitializationError
+import numpy as np
+
+from .base import InitializationError, StreamingBackend
 
 
 class SpoutBackend(StreamingBackend):
@@ -21,8 +24,8 @@ class SpoutBackend(StreamingBackend):
             height: Height of the texture in pixels
         """
         super().__init__(name, width, height)
-        self._sender: Optional[Any] = None
-        self._spout_gl: Optional[Any] = None
+        self._sender: Any | None = None
+        self._spout_gl: Any | None = None
 
     def is_available(self) -> bool:
         """Check if SpoutGL is available on this platform.
@@ -35,12 +38,7 @@ class SpoutBackend(StreamingBackend):
             return False
 
         # Try to import SpoutGL
-        try:
-            import SpoutGL
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("SpoutGL") is not None
 
     def initialize(self) -> bool:
         """Initialize the SpoutGL sender.
@@ -77,7 +75,7 @@ class SpoutBackend(StreamingBackend):
                 return False
 
         except Exception as e:
-            raise InitializationError(f"Failed to initialize SpoutGL: {e}")
+            raise InitializationError(f"Failed to initialize SpoutGL: {e}") from e
 
     def send_texture(self, texture_data: np.ndarray) -> bool:
         """Send texture data via SpoutGL.
@@ -101,7 +99,7 @@ class SpoutBackend(StreamingBackend):
             # Send via SpoutGL
             success = self._sender.sendImage(spout_data)
 
-            return success
+            return bool(success)
 
         except Exception:
             return False
@@ -143,10 +141,8 @@ class SpoutBackend(StreamingBackend):
     def cleanup(self) -> None:
         """Clean up SpoutGL resources."""
         if self._sender is not None:
-            try:
+            with contextlib.suppress(Exception):
                 self._sender.release()
-            except Exception:
-                pass  # Ignore cleanup errors
             self._sender = None
 
         self._spout_gl = None
@@ -176,7 +172,7 @@ class SpoutBackend(StreamingBackend):
         }
 
         if self._initialized and self._sender is not None:
-            try:
+            with contextlib.suppress(Exception):
                 # Get additional info from SpoutGL if available
                 info.update(
                     {
@@ -184,8 +180,6 @@ class SpoutBackend(StreamingBackend):
                         "supported_formats": self.get_supported_formats(),
                     }
                 )
-            except Exception:
-                pass
 
         return info
 
@@ -204,9 +198,9 @@ class SpoutBackend(StreamingBackend):
         try:
             # SpoutGL frame sync methods
             if enable:
-                return self._sender.setFrameSync(True)
+                return bool(self._sender.setFrameSync(True))
             else:
-                return self._sender.setFrameSync(False)
+                return bool(self._sender.setFrameSync(False))
         except Exception:
             return False
 
@@ -220,7 +214,7 @@ class SpoutBackend(StreamingBackend):
             return False
 
         try:
-            return self._sender.waitFrameSync()
+            return bool(self._sender.waitFrameSync())
         except Exception:
             return False
 
@@ -233,7 +227,7 @@ class SpoutBackend(StreamingBackend):
         info = {}
 
         if self._initialized and self._spout_gl is not None:
-            try:
+            with contextlib.suppress(Exception):
                 # Get adapter info if available in SpoutGL
                 info.update(
                     {
@@ -241,8 +235,6 @@ class SpoutBackend(StreamingBackend):
                         "adapter_description": "Windows Graphics Adapter",
                     }
                 )
-            except Exception:
-                pass
 
         return info
 

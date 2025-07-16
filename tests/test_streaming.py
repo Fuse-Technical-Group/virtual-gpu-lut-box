@@ -1,13 +1,14 @@
 """Tests for streaming functionality."""
 
-import numpy as np
-import pytest
 from unittest.mock import Mock, patch
 
-from virtual_gpu_lut_box.streaming.base import StreamingBackend, StreamingError
+import numpy as np
+import pytest
+
+from virtual_gpu_lut_box.streaming.base import StreamingBackend
 from virtual_gpu_lut_box.streaming.factory import (
-    StreamingFactory,
     PlatformNotSupportedError,
+    StreamingFactory,
 )
 
 
@@ -187,9 +188,8 @@ class TestStreamingBackend:
         """Test context manager with failed initialization."""
         backend = MockBackend("test", 10, 20, available=False)
 
-        with pytest.raises(RuntimeError, match="Failed to initialize"):
-            with backend:
-                pass
+        with pytest.raises(RuntimeError, match="Failed to initialize"), backend:
+            pass
 
     def test_send_texture_success(self) -> None:
         """Test successful texture sending."""

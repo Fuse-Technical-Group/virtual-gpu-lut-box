@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import click
-import numpy as np
 import sys
 import time
 from pathlib import Path
-from typing import Optional
+
+import click
+import numpy as np
 
 from .lut.generator import LUTGenerator
 from .lut.hald_converter import HaldConverter
-from .streaming.factory import StreamingFactory, PlatformNotSupportedError
+from .streaming.factory import PlatformNotSupportedError, StreamingFactory
 
 
 @click.group()
@@ -33,7 +33,7 @@ def main() -> None:
 @click.option("--saturation", default=1.0, help="Saturation multiplier")
 def generate(
     size: int,
-    output: Optional[str],
+    output: str | None,
     gamma: float,
     brightness: float,
     contrast: float,
@@ -95,10 +95,18 @@ def generate(
 @click.option("--size", default=33, help="LUT size (default: 33)")
 @click.option("--fps", default=30, help="Target frame rate")
 @click.option("--once", is_flag=True, help="Send only one frame and exit")
-@click.option("--duration", type=int, help="Stream for specified seconds (default: infinite)")
+@click.option(
+    "--duration", type=int, help="Stream for specified seconds (default: infinite)"
+)
 @click.option("--platform", help="Override platform detection")
 def stream(
-    input_file: str, name: str, size: int, fps: int, once: bool, duration: Optional[int], platform: Optional[str]
+    input_file: str,
+    name: str,
+    size: int,
+    fps: int,
+    once: bool,
+    duration: int | None,
+    platform: str | None,
 ) -> None:
     """Stream a Hald image via Spout/Syphon. Streams continuously by default."""
     try:
@@ -128,13 +136,15 @@ def stream(
                 if once:
                     click.echo("Sending single frame...")
                 elif duration:
-                    click.echo(f"Streaming at {fps} FPS for {duration} seconds. Press Ctrl+C to stop.")
+                    click.echo(
+                        f"Streaming at {fps} FPS for {duration} seconds. Press Ctrl+C to stop."
+                    )
                 else:
                     click.echo(f"Streaming at {fps} FPS. Press Ctrl+C to stop.")
 
                 frame_count = 0
                 start_streaming_time = time.time()
-                
+
                 while True:
                     frame_start_time = time.time()
 
@@ -179,7 +189,7 @@ def stream(
 
 @main.command()
 @click.option("--platform", help="Override platform detection")
-def info(platform: Optional[str]) -> None:
+def info(platform: str | None) -> None:
     """Show system and platform information."""
     try:
         # Show platform info
@@ -207,9 +217,9 @@ def info(platform: Optional[str]) -> None:
 
         # Show LUT info
         click.echo("\\nLUT Information:")
-        click.echo(f"  Default size: 33x33x33")
-        click.echo(f"  Hald dimensions: 1089x33")
-        click.echo(f"  Total LUT entries: 35,937")
+        click.echo("  Default size: 33x33x33")
+        click.echo("  Hald dimensions: 1089x33")
+        click.echo("  Total LUT entries: 35,937")
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -309,7 +319,7 @@ def live(
         # Load base Hald image
         converter = HaldConverter(size)
         click.echo(f"Loading base Hald image from {input_file}")
-        base_hald = converter.load_hald_image(input_file)
+        converter.load_hald_image(input_file)
 
         # Create streaming backend
         click.echo(f"Creating streaming backend for {name}")

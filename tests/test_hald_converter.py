@@ -1,12 +1,12 @@
 """Tests for Hald converter."""
 
-import numpy as np
-import pytest
-from pathlib import Path
 from unittest.mock import Mock, patch
 
-from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
+import numpy as np
+import pytest
+
 from virtual_gpu_lut_box.lut.generator import LUTGenerator
+from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 
 class TestHaldConverter:

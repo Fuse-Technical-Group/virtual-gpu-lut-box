@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-import numpy as np
+import contextlib
+import importlib.util
 import platform
 import time
-from typing import Optional, Any
+from typing import Any
 
-from .base import StreamingBackend, InitializationError
+import numpy as np
+
+from .base import InitializationError, StreamingBackend
 
 try:
     import Metal
+
     METAL_AVAILABLE = True
 except ImportError:
     METAL_AVAILABLE = False
@@ -28,11 +32,11 @@ class SyphonBackend(StreamingBackend):
             height: Height of the texture in pixels
         """
         super().__init__(name, width, height)
-        self._server: Optional[Any] = None
-        self._syphon: Optional[Any] = None
-        self._device: Optional[Any] = None
-        self._command_queue: Optional[Any] = None
-        self._texture: Optional[Any] = None
+        self._server: Any | None = None
+        self._syphon: Any | None = None
+        self._device: Any | None = None
+        self._command_queue: Any | None = None
+        self._texture: Any | None = None
         self._frame_count = 0
         self._last_fps_check = time.time()
 
@@ -47,11 +51,7 @@ class SyphonBackend(StreamingBackend):
             return False
 
         # Try to import syphon-python and Metal
-        try:
-            import syphon
-            return METAL_AVAILABLE
-        except ImportError:
-            return False
+        return METAL_AVAILABLE and importlib.util.find_spec("syphon") is not None
 
     def initialize(self) -> bool:
         """Initialize the Syphon Metal server.
@@ -79,22 +79,21 @@ class SyphonBackend(StreamingBackend):
             # Create Syphon Metal server
             print(f"🎥 Creating Syphon Metal server with name: '{self.name}'")
             self._server = syphon.SyphonMetalServer(
-                self.name, 
-                device=self._device, 
-                command_queue=self._command_queue
+                self.name, device=self._device, command_queue=self._command_queue
             )
 
             if self._server is not None:
                 self._initialized = True
                 print(f"✅ Syphon Metal server '{self.name}' created successfully")
-                print(f"📱 Metal device: {self._device.name()}")
+                if self._device is not None:
+                    print(f"📱 Metal device: {self._device.name()}")
                 return True
             else:
                 print(f"❌ Failed to create Syphon Metal server '{self.name}'")
                 return False
 
         except Exception as e:
-            raise InitializationError(f"Failed to initialize Syphon Metal: {e}")
+            raise InitializationError(f"Failed to initialize Syphon Metal: {e}") from e
 
     def send_texture(self, texture_data: np.ndarray) -> bool:
         """Send texture data via Syphon Metal.
@@ -124,8 +123,12 @@ class SyphonBackend(StreamingBackend):
             current_time = time.time()
             if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
                 elapsed = current_time - self._last_fps_check
-                fps = (self._frame_count - (getattr(self, '_last_frame_count', 0))) / elapsed
-                print(f"📊 Syphon Metal streaming: {fps:.1f} FPS, Clients: {self.has_clients}")
+                fps = (
+                    self._frame_count - (getattr(self, "_last_frame_count", 0))
+                ) / elapsed
+                print(
+                    f"📊 Syphon Metal streaming: {fps:.1f} FPS, Clients: {self.has_clients}"
+                )
                 self._last_frame_count = self._frame_count
                 self._last_fps_check = current_time
 
@@ -178,15 +181,17 @@ class SyphonBackend(StreamingBackend):
         }
 
         if self._initialized and self._server is not None:
-            try:
-                info.update({
-                    "server_active": True,
-                    "has_clients": self.has_clients,
-                    "supported_formats": self.get_supported_formats(),
-                    "metal_device": self._device.name() if self._device else "Unknown",
-                })
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                info.update(
+                    {
+                        "server_active": True,
+                        "has_clients": self.has_clients,
+                        "supported_formats": self.get_supported_formats(),
+                        "metal_device": self._device.name()
+                        if self._device
+                        else "Unknown",
+                    }
+                )
 
         return info
 
@@ -201,7 +206,7 @@ class SyphonBackend(StreamingBackend):
             return False
 
         try:
-            return self._server.has_clients
+            return bool(self._server.has_clients)
         except Exception:
             return False
 
@@ -216,7 +221,7 @@ class SyphonBackend(StreamingBackend):
 
         try:
             # Calculate FPS based on frame count
-            if hasattr(self, '_last_fps_check') and hasattr(self, '_last_frame_count'):
+            if hasattr(self, "_last_fps_check") and hasattr(self, "_last_frame_count"):
                 elapsed = time.time() - self._last_fps_check
                 if elapsed > 0:
                     return (self._frame_count - self._last_frame_count) / elapsed
@@ -282,15 +287,15 @@ class SyphonBackend(StreamingBackend):
         info = {}
 
         if self._initialized and self._device:
-            try:
-                info.update({
-                    "device_name": self._device.name(),
-                    "device_description": f"Metal Device: {self._device.name()}",
-                    "supports_unified_memory": str(self._device.hasUnifiedMemory()),
-                    "max_texture_size": "16384x16384",  # Metal typical limit
-                })
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                info.update(
+                    {
+                        "device_name": self._device.name(),
+                        "device_description": f"Metal Device: {self._device.name()}",
+                        "supports_unified_memory": str(self._device.hasUnifiedMemory()),
+                        "max_texture_size": "16384x16384",  # Metal typical limit
+                    }
+                )
 
         return info
 
@@ -311,7 +316,7 @@ class SyphonBackend(StreamingBackend):
 
     def _init_metal(self) -> bool:
         """Initialize Metal device and command queue.
-        
+
         Returns:
             True if successful, False otherwise
         """
@@ -333,17 +338,17 @@ class SyphonBackend(StreamingBackend):
 
             print(f"✅ Metal device initialized: {self._device.name()}")
             return True
-            
+
         except Exception as e:
             print(f"⚠️  Metal initialization failed: {e}")
             return False
 
     def _create_metal_texture(self, texture_data: np.ndarray) -> bool:
         """Create Metal texture from numpy array.
-        
+
         Args:
             texture_data: Texture data as numpy array
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -353,7 +358,7 @@ class SyphonBackend(StreamingBackend):
         try:
             # Prepare texture data
             height, width, channels = texture_data.shape
-            
+
             # Convert to RGBA format if needed
             if channels == 3:
                 # Add alpha channel
@@ -377,22 +382,23 @@ class SyphonBackend(StreamingBackend):
             texture_desc = Metal.MTLTextureDescriptor.texture2DDescriptorWithPixelFormat_width_height_mipmapped_(
                 Metal.MTLPixelFormatRGBA8Unorm, width, height, False
             )
-            texture_desc.setUsage_(Metal.MTLTextureUsageShaderRead | Metal.MTLTextureUsageShaderWrite)
+            texture_desc.setUsage_(
+                Metal.MTLTextureUsageShaderRead | Metal.MTLTextureUsageShaderWrite
+            )
 
             # Create the texture
             self._texture = self._device.newTextureWithDescriptor_(texture_desc)
 
             # Upload data to texture
             region = Metal.MTLRegion(
-                Metal.MTLOrigin(0, 0, 0), 
-                Metal.MTLSize(width, height, 1)
+                Metal.MTLOrigin(0, 0, 0), Metal.MTLSize(width, height, 1)
             )
             self._texture.replaceRegion_mipmapLevel_withBytes_bytesPerRow_(
                 region, 0, rgba_data.tobytes(), width * 4
             )
 
             return True
-            
+
         except Exception as e:
             print(f"⚠️  Metal texture creation failed: {e}")
             return False
@@ -431,7 +437,7 @@ class SyphonBackend(StreamingBackend):
         try:
             # Get list of Syphon clients from server directory
             directory = self._syphon.SyphonServerDirectory()
-            return directory.get_clients() if hasattr(directory, 'get_clients') else []
+            return directory.get_clients() if hasattr(directory, "get_clients") else []
         except Exception:
             return []
 
@@ -447,6 +453,6 @@ class SyphonBackend(StreamingBackend):
         try:
             # Get list of Syphon servers from server directory
             directory = self._syphon.SyphonServerDirectory()
-            return directory.get_servers() if hasattr(directory, 'get_servers') else []
+            return directory.get_servers() if hasattr(directory, "get_servers") else []
         except Exception:
             return []

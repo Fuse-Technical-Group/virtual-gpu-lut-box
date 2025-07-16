@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
-from typing import Callable, Optional
 
 
 class LUTGenerator:
@@ -18,7 +19,7 @@ class LUTGenerator:
         if size < 2:
             raise ValueError("LUT size must be at least 2")
         self.size = size
-        self._identity_lut: Optional[np.ndarray] = None
+        self._identity_lut: np.ndarray | None = None
 
     @property
     def identity_lut(self) -> np.ndarray:
@@ -50,7 +51,7 @@ class LUTGenerator:
         # Stack into RGBA format (size, size, size, 3)
         lut = np.stack([r_grid, g_grid, b_grid], axis=-1)
 
-        return lut.astype(np.float32)
+        return lut.astype(np.float32)  # type: ignore[no-any-return]
 
     def apply_transform(
         self, transform_func: Callable[[np.ndarray], np.ndarray]

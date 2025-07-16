@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 from PIL import Image
-from typing import Optional
 
 
 class HaldConverter:
@@ -119,11 +118,11 @@ class HaldConverter:
 
         # Convert to RGB if needed
         if image.mode != "RGB":
-            image = image.convert("RGB")
+            image = image.convert("RGB")  # type: ignore[assignment]
 
         # Resize if needed
         if image.size != (self.hald_width, self.hald_height):
-            image = image.resize(
+            image = image.resize(  # type: ignore[assignment]
                 (self.hald_width, self.hald_height), Image.Resampling.LANCZOS
             )
 
@@ -185,10 +184,7 @@ class HaldConverter:
             return False
 
         # Check value range
-        if np.any(hald < 0) or np.any(hald > 1):
-            return False
-
-        return True
+        return not (np.any(hald < 0) or np.any(hald > 1))
 
     def create_identity_hald(self) -> np.ndarray:
         """Create identity Hald image for testing.

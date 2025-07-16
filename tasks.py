@@ -4,15 +4,16 @@
 import shutil
 import sys
 from pathlib import Path
-from invoke.tasks import task
+
 from invoke.context import Context
+from invoke.tasks import task
 
 
 @task
 def clean(_: Context) -> None:
     """Clean build artifacts, cache files, and temporary files."""
     print("🧹 Cleaning build artifacts and cache files...")
-    
+
     # Directories to clean
     dirs_to_clean = [
         "build",
@@ -25,7 +26,7 @@ def clean(_: Context) -> None:
         "htmlcov",
         "__pycache__",
     ]
-    
+
     for pattern in dirs_to_clean:
         if "*" in pattern:
             # Handle glob patterns
@@ -41,7 +42,7 @@ def clean(_: Context) -> None:
             if Path(pattern).exists():
                 print(f"  Removing directory: {pattern}")
                 shutil.rmtree(pattern, ignore_errors=True)
-    
+
     print("✅ Clean completed")
 
 
@@ -72,23 +73,23 @@ def typecheck(ctx: Context) -> None:
 @task
 def test(ctx: Context, coverage: bool = True, verbose: bool = False) -> None:
     """Run tests with pytest.
-    
+
     Args:
         coverage: Generate coverage report (default: True)
         verbose: Run with verbose output (default: False)
     """
     print("🧪 Running tests with pytest...")
-    
+
     cmd = "pytest"
-    
+
     if coverage:
         cmd += " --cov=virtual_gpu_lut_box --cov-report=term-missing --cov-report=html --cov-report=xml"
-    
+
     if verbose:
         cmd += " -v"
-    
+
     cmd += " tests"
-    
+
     ctx.run(cmd)
     print("✅ Tests completed")
 
@@ -103,10 +104,10 @@ def quality(_: Context) -> None:
 def build(ctx: Context) -> None:
     """Build the package for distribution."""
     print("🔨 Building package...")
-    
+
     # Build source distribution and wheel
     ctx.run("python -m build")
-    
+
     # Show built files
     print("\n📦 Built files:")
     dist_path = Path("dist")
@@ -120,14 +121,14 @@ def build(ctx: Context) -> None:
             else:
                 size_str = f"{size}B"
             print(f"  {file.name} ({size_str})")
-    
+
     print("✅ Build completed")
 
 
 @task(pre=[build])
 def publish(ctx: Context, test: bool = False) -> None:
     """Publish package to PyPI.
-    
+
     Args:
         test: Publish to test PyPI instead of production (default: False)
     """
@@ -137,24 +138,24 @@ def publish(ctx: Context, test: bool = False) -> None:
     else:
         print("🚀 Publishing to PyPI...")
         response = input("Are you sure you want to publish to production PyPI? (y/N): ")
-        if response.lower() != 'y':
+        if response.lower() != "y":
             print("❌ Publish cancelled")
             return
         ctx.run("python -m twine upload dist/*")
-    
+
     print("✅ Publish completed")
 
 
 @task
 def install(ctx: Context, dev: bool = False, editable: bool = True) -> None:
     """Install the package.
-    
+
     Args:
         dev: Install with development dependencies (default: False)
         editable: Install in editable mode (default: True)
     """
     print("📥 Installing package...")
-    
+
     if dev:
         ctx.run("uv sync --extra dev")
     else:
@@ -169,15 +170,15 @@ def install(ctx: Context, dev: bool = False, editable: bool = True) -> None:
 def docs(ctx: Context) -> None:
     """Generate documentation."""
     print("📚 Generating documentation...")
-    
+
     # Create docs directory if it doesn't exist
     docs_dir = Path("docs")
     docs_dir.mkdir(exist_ok=True)
-    
+
     # Generate API documentation
     api_doc = docs_dir / "api.md"
     print(f"  Generating API documentation: {api_doc}")
-    
+
     ctx.run(f'''python -c "
 import sys
 sys.path.insert(0, 'src')
@@ -186,29 +187,29 @@ import inspect
 
 with open('{api_doc}', 'w') as f:
     f.write('# API Documentation\\n\\n')
-    
+
     classes = [
         ('LUTGenerator', LUTGenerator),
         ('HaldConverter', HaldConverter),
         ('StreamingFactory', StreamingFactory),
     ]
-    
+
     for name, cls in classes:
         f.write(f'## {{name}}\\n\\n')
         f.write(f'{{cls.__doc__ or \"No documentation available.\"}}\\n\\n')
-        
+
         # Get public methods
-        methods = [m for m in inspect.getmembers(cls, predicate=inspect.ismethod) 
+        methods = [m for m in inspect.getmembers(cls, predicate=inspect.ismethod)
                   if not m[0].startswith('_')]
-        methods.extend([m for m in inspect.getmembers(cls, predicate=inspect.isfunction) 
+        methods.extend([m for m in inspect.getmembers(cls, predicate=inspect.isfunction)
                        if not m[0].startswith('_')])
-        
+
         for method_name, method in methods:
             if hasattr(method, '__doc__') and method.__doc__:
                 f.write(f'### {{method_name}}\\n\\n')
                 f.write(f'{{method.__doc__}}\\n\\n')
 "''')
-    
+
     print("✅ Documentation generated")
 
 
@@ -216,76 +217,77 @@ with open('{api_doc}', 'w') as f:
 def dev_setup(ctx: Context) -> None:
     """Set up development environment."""
     print("🔧 Setting up development environment...")
-    
+
     # Install package in editable mode with dev dependencies
     ctx.run("uv sync --extra dev")
-    
+
     # Install pre-commit hooks
     ctx.run("pre-commit install")
-    
+
     print("✅ Development environment setup completed")
 
 
 @task
 def release(ctx: Context, version: str = "") -> None:
     """Prepare a release.
-    
+
     Args:
         version: Version number to release (e.g., "1.0.0")
     """
     if not version:
         print("❌ Version number required. Usage: invoke release --version=1.0.0")
         return
-    
+
     print(f"🚀 Preparing release {version}...")
-    
+
     # Update version in __init__.py
     init_file = Path("src/virtual_gpu_lut_box/__init__.py")
     content = init_file.read_text()
-    
+
     # Extract current version
     version_line_start = '__version__ = "'
     version_line_end = '"'
     start_idx = content.find(version_line_start) + len(version_line_start)
     end_idx = content.find(version_line_end, start_idx)
     current_version = content[start_idx:end_idx]
-    
+
     # Replace with new version
     updated_content = content.replace(
-        f'__version__ = "{current_version}"',
-        f'__version__ = "{version}"'
+        f'__version__ = "{current_version}"', f'__version__ = "{version}"'
     )
     init_file.write_text(updated_content)
     print(f"  Updated version from {current_version} to {version} in {init_file}")
-    
+
     # Run quality checks
     print("  Running quality checks...")
     quality(ctx)
-    
+
     # Build package
     print("  Building package...")
     build(ctx)
-    
+
     print(f"✅ Release {version} prepared. Review and then run:")
-    print(f"   git add .")
+    print("   git add .")
     print(f"   git commit -m 'Release {version}'")
     print(f"   git tag v{version}")
-    print(f"   git push origin main --tags")
-    print(f"   invoke publish")
+    print("   git push origin main --tags")
+    print("   invoke publish")
 
 
 @task
 def demo(ctx: Context) -> None:
     """Run a quick demo of the package."""
     print("🎬 Running package demo...")
-    
+
     # Check if package is installed
     try:
-        ctx.run("python -c 'import virtual_gpu_lut_box; print(f\"Package version: {virtual_gpu_lut_box.__version__}\")'")
+        ctx.run(
+            "python -c 'import virtual_gpu_lut_box; print(f\"Package version: {virtual_gpu_lut_box.__version__}\")'"
+        )
     except Exception:
         print("❌ Package not installed. Run 'invoke install' first.")
         return
-    
+
     # Run CLI info command
     print("\n📊 Platform information:")
     try:
@@ -293,18 +295,18 @@ def demo(ctx: Context) -> None:
     except Exception as e:
         print(f"❌ CLI not available: {e}")
         return
-    
+
     # Run comprehensive demo
     print("\n🔧 Running comprehensive demo:")
     try:
         ctx.run("python docs/examples/comprehensive_demo.py")
     except Exception as e:
         print(f"⚠️  Demo failed (expected if dependencies not installed): {e}")
-    
+
     print("\n💡 Streaming functionality is built-in!")
     print("   - Platform-specific dependencies are automatically installed")
     print("   - No extra steps needed for Syphon (macOS) or Spout (Windows)")
-    
+
     print("✅ Demo completed")
 
 
@@ -321,6 +323,7 @@ def all(ctx: Context) -> None:
 if __name__ == "__main__":
     # Allow running tasks directly
     import sys
+
     if len(sys.argv) > 1:
         print("Use 'invoke <task>' to run tasks")
     else:

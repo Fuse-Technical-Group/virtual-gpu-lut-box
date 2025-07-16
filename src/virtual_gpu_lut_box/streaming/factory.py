@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import platform
-from typing import Type, Optional
 
-from .base import StreamingBackend, PlatformNotSupportedError
+from .base import PlatformNotSupportedError, StreamingBackend
 
 
 class StreamingFactory:
     """Factory for creating platform-specific streaming backends."""
 
-    _backends: dict[str, Type[StreamingBackend]] = {}
+    _backends: dict[str, type[StreamingBackend]] = {}
 
     @classmethod
     def register_backend(
-        cls, platform_name: str, backend_class: Type[StreamingBackend]
+        cls, platform_name: str, backend_class: type[StreamingBackend]
     ) -> None:
         """Register a streaming backend for a platform.
 
@@ -40,7 +39,7 @@ class StreamingFactory:
         name: str = "virtual-gpu-lut-box",
         width: int = 1089,
         height: int = 33,
-        platform_name: Optional[str] = None,
+        platform_name: str | None = None,
     ) -> StreamingBackend:
         """Create appropriate streaming backend for current platform.
 
@@ -88,7 +87,7 @@ class StreamingFactory:
         return platform.system()
 
     @classmethod
-    def is_platform_supported(cls, platform_name: Optional[str] = None) -> bool:
+    def is_platform_supported(cls, platform_name: str | None = None) -> bool:
         """Check if platform is supported.
 
         Args:
@@ -116,7 +115,7 @@ class StreamingFactory:
         cls,
         name: str = "virtual-gpu-lut-box",
         lut_size: int = 33,
-        platform_name: Optional[str] = None,
+        platform_name: str | None = None,
     ) -> StreamingBackend:
         """Create streaming backend optimized for LUT streaming.
 
@@ -135,7 +134,7 @@ class StreamingFactory:
         return cls.create_backend(name, width, height, platform_name)
 
     @classmethod
-    def list_supported_formats(cls, platform_name: Optional[str] = None) -> list[str]:
+    def list_supported_formats(cls, platform_name: str | None = None) -> list[str]:
         """List supported texture formats for platform.
 
         Args:
@@ -155,7 +154,8 @@ class StreamingFactory:
             backend = backend_class("test", 1, 1)
             if backend.is_available():
                 return backend.get_supported_formats()
-        except Exception:
+        except Exception:  # noqa: S110
+            # Backend unavailable or failed to initialize
             pass
 
         return []

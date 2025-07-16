@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import numpy as np
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Any
+
+import numpy as np
 
 
 class StreamingBackend(ABC):
@@ -22,7 +23,7 @@ class StreamingBackend(ABC):
         self.width = width
         self.height = height
         self._initialized = False
-        self._context: Optional[Any] = None
+        self._context: Any | None = None
 
     @property
     def initialized(self) -> bool:
@@ -84,7 +85,7 @@ class StreamingBackend(ABC):
         """
         # Check if numpy array
         if not isinstance(texture_data, np.ndarray):
-            return False
+            return False  # type: ignore[unreachable]
 
         # Check dimensions
         if len(texture_data.shape) != 3:
@@ -108,7 +109,7 @@ class StreamingBackend(ABC):
         if texture_data.dtype == np.uint8:
             if np.any(texture_data < 0) or np.any(texture_data > 255):
                 return False
-        elif texture_data.dtype == np.float32:
+        elif texture_data.dtype == np.float32:  # noqa: SIM102
             if np.any(texture_data < 0) or np.any(texture_data > 1):
                 return False
 
@@ -175,6 +176,20 @@ class StreamingBackend(ABC):
             raise ValueError(f"Unsupported format: {target_format}")
 
         return data
+
+    def send_lut_texture(self, hald_image: np.ndarray) -> bool:
+        """Send LUT texture data.
+
+        Default implementation just calls send_texture.
+        Subclasses may override for specialized LUT handling.
+
+        Args:
+            hald_image: Hald image data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.send_texture(hald_image)
 
     def __enter__(self) -> StreamingBackend:
         """Context manager entry."""

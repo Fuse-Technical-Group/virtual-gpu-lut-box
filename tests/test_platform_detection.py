@@ -1,6 +1,5 @@
 """Tests for platform detection and cross-platform functionality."""
 
-import pytest
 from unittest.mock import Mock, patch
 
 from virtual_gpu_lut_box.streaming.factory import StreamingFactory
@@ -114,6 +113,7 @@ class TestPlatformDetection:
         with patch.dict("sys.modules", {"SpoutGL": Mock()}):
             # Re-import factory to trigger registration
             from importlib import reload
+
             from virtual_gpu_lut_box.streaming import factory
 
             reload(factory)
@@ -130,6 +130,7 @@ class TestPlatformDetection:
         with patch.dict("sys.modules", {"syphon": Mock()}):
             # Re-import factory to trigger registration
             from importlib import reload
+
             from virtual_gpu_lut_box.streaming import factory
 
             reload(factory)
@@ -155,6 +156,7 @@ class TestPlatformDetection:
             with patch.dict("sys.modules", mock_module):
                 # Re-import factory to trigger registration
                 from importlib import reload
+
                 from virtual_gpu_lut_box.streaming import factory
 
                 reload(factory)
@@ -193,6 +195,7 @@ class TestPlatformDetection:
         # But we override to Darwin
         with patch.dict("sys.modules", {"syphonpy": Mock()}):
             from importlib import reload
+
             from virtual_gpu_lut_box.streaming import factory
 
             reload(factory)
@@ -224,6 +227,7 @@ class TestPlatformDetection:
             with patch.dict("sys.modules", mock_module):
                 # Re-import factory to trigger registration
                 from importlib import reload
+
                 from virtual_gpu_lut_box.streaming import factory
 
                 reload(factory)
@@ -251,6 +255,7 @@ class TestPlatformDetection:
         # Mock import errors
         with patch.dict("sys.modules", {"SpoutGL": None, "syphon": None}):
             from importlib import reload
+
             from virtual_gpu_lut_box.streaming import factory
 
             # Should not raise errors, just skip registration
