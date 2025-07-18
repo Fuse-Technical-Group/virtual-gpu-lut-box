@@ -95,6 +95,14 @@ def spell(ctx: Context, fix: bool = False) -> None:
 
 
 @task
+def security(ctx: Context) -> None:
+    """Run security analysis with bandit."""
+    print("🔒 Running security analysis with bandit...")
+    ctx.run("bandit -r src/virtual_gpu_lut_box")
+    print("✅ Security analysis completed")
+
+
+@task
 def check_patterns(ctx: Context) -> None:
     """Check for banned code patterns."""
     print("🔍 Checking for banned code patterns...")
@@ -139,9 +147,9 @@ def test(ctx: Context, coverage: bool = True, verbose: bool = False) -> None:
     print("✅ Tests completed")
 
 
-@task(pre=[format, lint, typecheck, spell, check_patterns, test])
+@task(pre=[format, lint, typecheck, spell, security, check_patterns, test])
 def quality(_: Context) -> None:
-    """Run all quality checks: format, lint, typecheck, spell check, pattern check, and test."""
+    """Run all quality checks: format, lint, typecheck, spell check, security, pattern check, and test."""
     print("🎯 All quality checks completed successfully!")
 
 
@@ -380,6 +388,7 @@ if __name__ == "__main__":
         print("  invoke lint       - Run linting")
         print("  invoke typecheck  - Run type checking")
         print("  invoke spell      - Run spell checking")
+        print("  invoke security   - Run security analysis")
         print("  invoke test       - Run tests")
         print("  invoke quality    - Run all quality checks")
         print("  invoke build      - Build package")
