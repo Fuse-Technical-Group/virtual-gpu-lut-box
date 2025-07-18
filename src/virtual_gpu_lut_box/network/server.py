@@ -22,10 +22,12 @@ logger = logging.getLogger(__name__)
 class OpenGradeIOServer:
     """TCP server for OpenGradeIO virtual LUT box protocol."""
 
+    DEFAULT_PORT = 8089
+
     def __init__(
         self,
         host: str = "127.0.0.1",
-        port: int = 8089,
+        port: int = DEFAULT_PORT,
         lut_callback: Callable[[np.ndarray[Any, Any]], None]
         | Callable[[np.ndarray[Any, Any], str | None], None]
         | None = None,

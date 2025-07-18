@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import sys
+import time
 
 import click
 
-from .gpu_texture_stream.factory import PlatformNotSupportedError, StreamingFactory
-from .server import get_platform_info, start_server
+from .gpu_texture_stream.factory import PlatformNotSupportedError
+from .server import VirtualGPULUTBoxServer
 
 
 @click.command()
 @click.option("--host", default="127.0.0.1", help="Server host address")
-@click.option("--port", default=8089, help="Server port number")
+@click.option("--port", default=VirtualGPULUTBoxServer.DEFAULT_PORT, help="Server port number")
 @click.option(
     "--stream-name",
     default="OpenGradeIO-LUT",
@@ -46,7 +47,7 @@ def main(
 def show_system_info() -> None:
     """Show system and platform information."""
     try:
-        platform_info = get_platform_info()
+        platform_info = VirtualGPULUTBoxServer.get_platform_info()
         
         # Show basic platform info
         click.echo("System Information:")
@@ -62,13 +63,6 @@ def show_system_info() -> None:
         if platform_info['platform_supported']:
             click.echo(f"Supported formats: {', '.join(platform_info['supported_formats'])}")
 
-        # Show streaming info
-        click.echo("\nStreaming Information:")
-        click.echo("  Protocol: OpenGradeIO BSON over TCP")
-        click.echo("  Precision: 32-bit float only (no 8-bit conversion)")
-        click.echo("  Formats: RGB and RGBA with HDR support")
-        click.echo("  Channel naming: vglb-lut-{channel}")
-
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -81,16 +75,28 @@ def start_server_cli(
     verbose: bool,
     info_logging: bool,
 ) -> None:
-    """Start OpenGradeIO virtual LUT box server via CLI."""
+    """Start virtual LUT box server via CLI."""
+    server = None
+    
     try:
-        start_server(
+        # Create and start server
+        server = VirtualGPULUTBoxServer(
             host=host,
             port=port,
             stream_name=stream_name,
             verbose=verbose,
             info_logging=info_logging,
-            blocking=True,
         )
+        server.start()
+        
+        # Handle server lifetime in CLI
+        try:
+            click.echo("🔄 Server running. Press Ctrl+C to stop.")
+            while server.is_running:
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            click.echo("🛑 Stopping server...")
+            
     except PlatformNotSupportedError as e:
         click.echo(f"Platform error: {e}", err=True)
         click.echo("GPU texture streaming not supported on this platform")
@@ -98,6 +104,11 @@ def start_server_cli(
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+    finally:
+        # Clean up resources
+        if server:
+            server.stop()
+        click.echo("✅ Server stopped")
 
 
 if __name__ == "__main__":
