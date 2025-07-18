@@ -31,3 +31,14 @@ repos:
           pytest,
         ]
         exclude: ^(docs/|tasks\.py|tests/|src/virtual_gpu_lut_box/gpu_texture_stream/syphon\.py|src/virtual_gpu_lut_box/gpu_texture_stream/spout\.py)
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        args: [--cov=virtual_gpu_lut_box, --cov-fail-under=50, tests/]

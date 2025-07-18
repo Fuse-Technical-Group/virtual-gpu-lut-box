@@ -308,3 +308,16 @@ class OpenGradeIOServer:
     def is_running(self) -> bool:
         """Check if server is running."""
         return self._running
+
+    def __enter__(self) -> OpenGradeIOServer:
+        """Enter context manager."""
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit context manager."""
+        self.stop()
+
+    def __repr__(self) -> str:
+        """String representation of server."""
+        return f"OpenGradeIOServer(host={self.host}, port={self.port})"
