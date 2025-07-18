@@ -144,7 +144,7 @@ jobs:
     - name: Test CLI installation
       run: |
         virtual-gpu-lut-box --version
-        virtual-gpu-lut-box info
+        virtual-gpu-lut-box --info
 
     - name: Test package import
       run: |
