@@ -1,14 +1,16 @@
 # Virtual GPU LUT Box
 
-A cross-platform Python package for creating and streaming 33x33x33 color correction LUTs to GPU shaders via Spout (Windows) and Syphon (macOS).
+A cross-platform Python package for creating and streaming color correction LUTs to GPU shaders via Spout (Windows) and Syphon (macOS). Supports both standalone LUT generation and real-time OpenGradeIO integration.
 
 ## Features
 
-- **33x33x33 LUT Generation**: Production-quality color correction LUTs
+- **Adaptive LUT Generation**: Support for any LUT size (16x16x16, 33x33x33, 64x64x64, etc.)
 - **Hald Image Conversion**: Convert 3D LUTs to 2D texture format for GPU shaders
-- **Cross-Platform Streaming**: Spout on Windows, Syphon on macOS
-- **CLI Interface**: Easy-to-use command-line tools
-- **Modern Python**: Type hints, comprehensive testing, and modern packaging
+- **Cross-Platform Streaming**: Spout on Windows, Syphon on macOS with 32-bit float precision
+- **OpenGradeIO Integration**: Real-time LUT streaming from OpenGradeIO-compatible LUT generators
+- **Channel-Aware Streaming**: Automatic stream naming based on OpenGradeIO channels/instances
+- **CLI Interface**: Comprehensive command-line tools for generation and streaming
+- **Modern Python**: Type hints, comprehensive testing, and modern packaging with Pyright
 
 ## Installation
 
@@ -38,11 +40,20 @@ virtual-gpu-lut-box generate --gamma 2.2 --brightness 0.1 --output my_lut.png
 
 Stream a LUT via Spout/Syphon:
 ```bash
-# Uses default stream name "virtual-gpu-lut-box"
-virtual-gpu-lut-box stream my_lut.png --fps 30 --loop
+# Stream with default settings
+virtual-gpu-lut-box stream my_lut.png --fps 30
 
-# Or specify a custom name
-virtual-gpu-lut-box stream my_lut.png --name "My Custom Stream" --fps 30 --loop
+# Custom stream name and LUT size
+virtual-gpu-lut-box stream my_lut.png --name "My Custom Stream" --size 64 --fps 30
+```
+
+Start OpenGradeIO compatible network server:
+```bash
+# Listen for OpenGradeIO compatible connections
+virtual-gpu-lut-box listen --host 127.0.0.1 --port 8089 --verbose
+
+# Custom stream name for OpenGradeIO LUTs
+virtual-gpu-lut-box listen --stream-name "OpenGradeIO-LUT" --verbose
 ```
 
 Check platform support:
@@ -51,6 +62,8 @@ virtual-gpu-lut-box info
 ```
 
 ### Python API
+
+#### Standalone LUT Generation and Streaming
 
 ```python
 from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory
@@ -68,39 +81,76 @@ lut = generator.create_custom_lut(
 converter = HaldConverter(size=33)
 hald_image = converter.lut_to_hald(lut)
 
-# Stream to GPU shader (uses default name "virtual-gpu-lut-box")
-with StreamingFactory.create_lut_streamer() as streamer:
-    streamer.send_lut_texture(hald_image)
+# Stream to GPU shader
+backend = StreamingFactory.create_lut_streamer("My Custom Stream", lut_size=33)
+if backend.initialize():
+    with backend:
+        backend.send_lut_texture(hald_image)
+```
 
-# Or specify a custom name
-with StreamingFactory.create_lut_streamer("My Custom Stream") as streamer:
-    streamer.send_lut_texture(hald_image)
+#### OpenGradeIO Integration
+
+```python
+from virtual_gpu_lut_box import OpenGradeIOServer, OpenGradeIOLUTStreamer
+import numpy as np
+
+# Create LUT streamer with automatic channel naming
+streamer = OpenGradeIOLUTStreamer(stream_name="OpenGradeIO-LUT")
+
+# LUT callback function
+def lut_callback(lut_data: np.ndarray, channel_name: str = None):
+    try:
+        streamer.process_lut(lut_data, channel_name)
+        print(f"Streamed LUT for channel: {channel_name or 'default'}")
+    except Exception as e:
+        print(f"Error streaming LUT: {e}")
+
+# Start OpenGradeIO server
+server = OpenGradeIOServer(
+    host="127.0.0.1",
+    port=8089,
+    lut_callback=lut_callback
+)
+
+server.start()
+# Server runs in background thread
 ```
 
 ## Architecture
 
 ### Components
 
-- **LUTGenerator**: Creates 33x33x33 color correction LUTs with various adjustments
-- **HaldConverter**: Converts 3D LUTs to 2D Hald image format (1089x33 pixels)
-- **StreamingFactory**: Platform-aware factory for creating streaming backends
-- **SpoutBackend**: Windows Spout streaming implementation
-- **SyphonBackend**: macOS Syphon streaming implementation
+- **LUTGenerator**: Creates color correction LUTs with various adjustments (any size)
+- **HaldConverter**: Converts 3D LUTs to 2D Hald image format for GPU consumption
+- **StreamingFactory**: Platform-aware factory with lazy initialization and size adaptation
+- **SpoutBackend**: Windows Spout streaming with 32-bit float precision support
+- **SyphonBackend**: macOS Syphon streaming with Metal integration and 32-bit float textures
+- **OpenGradeIOServer**: TCP server for OpenGradeIO BSON protocol
+- **OpenGradeIOLUTStreamer**: Integration layer with channel-aware streaming
 
-### LUT Format
+### LUT Format and Precision
 
-The package uses 33x33x33 LUTs, which provide production-quality color correction with 35,937 color entries. These are converted to Hald images with dimensions:
-- Width: 1089 pixels (33 × 33)
-- Height: 33 pixels
-- Format: RGB/RGBA
+The package supports any cubic LUT size with automatic Hald image calculation:
+- **33x33x33 LUT**: 1089x33 Hald image (35,937 entries) - Standard
+- **64x64x64 LUT**: 4096x64 Hald image (262,144 entries) - High precision
+- **Format**: 32-bit float RGBA for maximum precision, fallback to 8-bit when needed
+- **Range**: Supports HDR/creative LUTs with values outside [0,1] range
+
+### OpenGradeIO Integration
+
+- **BSON Protocol**: Full support for OpenGradeIO virtual LUT box protocol
+- **Channel Awareness**: Automatic stream naming using `ogio-lut-{channel}` format
+- **Lazy Initialization**: Streaming backend adapts to incoming LUT size automatically
+- **Metadata Extraction**: Parse service, instance, and type information from messages
+- **Error Handling**: Comprehensive error handling with detailed logging
 
 ## Platform Support
 
-| Platform | Streaming Backend | Status |
-|----------|------------------|--------|
-| Windows  | Spout            | ✅ Supported |
-| macOS    | Syphon           | ✅ Supported |
-| Linux    | None             | ❌ Not supported |
+| Platform | Streaming Backend | Precision | Metal Support | Status |
+|----------|------------------|-----------|---------------|--------|
+| Windows  | Spout            | 32-bit float | N/A | ✅ Supported |
+| macOS    | Syphon           | 32-bit float | ✅ Yes | ✅ Supported |
+| Linux    | None             | N/A | N/A | ❌ Not supported |
 
 ## Development
 
@@ -140,9 +190,18 @@ invoke format lint
 # Run tests with coverage
 invoke test
 
-# Type checking
+# Type checking with Pyright
 invoke typecheck
 ```
+
+### Code Quality
+
+The project uses modern Python tooling:
+- **Pyright**: Fast, accurate type checking
+- **Ruff**: Ultra-fast Python linter and formatter
+- **TID Rules**: Enforced fully qualified imports for better maintainability
+- **32-bit Float Support**: Custom Metal type stubs for macOS
+- **Exception Handling**: No silent failures - all exceptions are properly handled
 
 ### Manual Commands
 
@@ -150,16 +209,30 @@ invoke typecheck
 # Testing
 pytest
 
-# Linting
+# Linting and formatting
 ruff check src tests
 ruff format src tests
 
 # Type checking
-mypy src/virtual_gpu_lut_box
+pyright
 
 # Building
 python -m build
 ```
+
+## OpenGradeIO Workflow
+
+1. **Start Server**: `virtual-gpu-lut-box listen`
+2. **Configure OpenGradeIO**: Set virtual LUT box to `127.0.0.1:8089`
+3. **Apply LUTs**: LUTs are automatically streamed to `ogio-lut-{channel}` streams
+4. **GPU Integration**: Consume the LUT in Hald format in your rendering/compositing application
+
+The server supports:
+- Multiple concurrent channels
+- Any LUT size (16x16x16 to 64x64x64 and beyond)
+- Real-time updates
+- Automatic stream naming based on OpenGradeIO channels
+- 32-bit float precision for professional color grading
 
 ## Contributing
 
@@ -167,7 +240,7 @@ python -m build
 2. Create a feature branch
 3. Make your changes
 4. Add tests
-5. Run the test suite
+5. Run the test suite (`invoke quality`)
 6. Submit a pull request
 
 ## License
@@ -178,4 +251,5 @@ MIT License - see LICENSE file for details.
 
 - [Spout](https://spout.zeal.co/) for Windows texture sharing
 - [Syphon](http://syphon.v002.info/) for macOS texture sharing
+- [PyObjC](https://pyobjc.readthedocs.io/) for Metal framework integration on macOS
 - The OpenGL and GPU shader communities

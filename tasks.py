@@ -55,19 +55,48 @@ def format(ctx: Context) -> None:
 
 
 @task
-def lint(ctx: Context) -> None:
-    """Run linting with ruff."""
+def lint(ctx: Context, fix: bool = False) -> None:
+    """Run linting with ruff.
+    
+    Args:
+        fix: Automatically fix fixable issues (default: False)
+    """
     print("🔍 Linting code with ruff...")
-    ctx.run("ruff check src tests")
+    cmd = "ruff check src tests"
+    if fix:
+        cmd += " --fix"
+        print("  Auto-fixing enabled")
+    ctx.run(cmd)
     print("✅ Linting completed")
 
 
 @task
 def typecheck(ctx: Context) -> None:
-    """Run type checking with mypy."""
-    print("🔬 Type checking with mypy...")
-    ctx.run("mypy src/virtual_gpu_lut_box")
+    """Run type checking with pyright."""
+    print("🔬 Type checking with pyright...")
+    ctx.run("pyright src/virtual_gpu_lut_box")
     print("✅ Type checking completed")
+
+
+@task
+def check_patterns(ctx: Context) -> None:
+    """Check for banned code patterns."""
+    print("🔍 Checking for banned code patterns...")
+    
+    # Check for contextlib.suppress(Exception) patterns
+    result = ctx.run("grep -r 'contextlib.suppress(Exception)' src/ || true", hide=True)
+    if result.stdout.strip():
+        print("❌ Found banned contextlib.suppress(Exception) patterns:")
+        print(result.stdout)
+        raise SystemExit(1)
+    
+    result = ctx.run("grep -r 'contextlib.suppress.*Exception' src/ || true", hide=True)
+    if result.stdout.strip():
+        print("❌ Found potential contextlib.suppress with broad exceptions:")
+        print(result.stdout)
+        raise SystemExit(1)
+    
+    print("✅ No banned patterns found")
 
 
 @task
@@ -94,9 +123,9 @@ def test(ctx: Context, coverage: bool = True, verbose: bool = False) -> None:
     print("✅ Tests completed")
 
 
-@task(pre=[format, lint, typecheck, test])
+@task(pre=[format, lint, typecheck, check_patterns, test])
 def quality(_: Context) -> None:
-    """Run all quality checks: format, lint, typecheck, and test."""
+    """Run all quality checks: format, lint, typecheck, pattern check, and test."""
     print("🎯 All quality checks completed successfully!")
 
 

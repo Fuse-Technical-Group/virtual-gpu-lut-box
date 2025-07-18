@@ -53,26 +53,45 @@ class StreamingFactory:
             Platform-specific streaming backend
 
         Raises:
+            ValueError: If dimensions are invalid
             PlatformNotSupportedError: If platform is not supported
         """
+        # Validate inputs
+        if not name or not isinstance(name, str):
+            raise ValueError(f"Invalid stream name: {name!r}")
+
+        if width <= 0 or height <= 0:
+            raise ValueError(
+                f"Invalid dimensions: {width}x{height}. Must be positive integers."
+            )
+
+        if width > 16384 or height > 16384:
+            raise ValueError(
+                f"Dimensions too large: {width}x{height}. Maximum is 16384x16384."
+            )
+
         # Detect platform if not specified
         if platform_name is None:
             platform_name = platform.system()
 
         # Check if backend is available
         if platform_name not in cls._backends:
+            available = list(cls._backends.keys())
             raise PlatformNotSupportedError(
-                f"Platform '{platform_name}' is not supported"
+                f"Platform '{platform_name}' is not supported. Available platforms: {available}"
             )
 
         # Create backend instance
         backend_class = cls._backends[platform_name]
-        backend = backend_class(name, width, height)
+        try:
+            backend = backend_class(name, width, height)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create {platform_name} backend: {e}") from e
 
         # Verify backend is available
         if not backend.is_available():
             raise PlatformNotSupportedError(
-                f"Backend for '{platform_name}' is not available"
+                f"Backend for '{platform_name}' is not available on this system"
             )
 
         return backend
@@ -126,12 +145,30 @@ class StreamingFactory:
 
         Returns:
             Streaming backend configured for LUT dimensions
+
+        Raises:
+            ValueError: If lut_size is invalid
+            PlatformNotSupportedError: If platform is not supported
         """
+        # Validate LUT size
+        if lut_size <= 0:
+            raise ValueError(f"Invalid LUT size: {lut_size}. Must be positive.")
+
+        if lut_size > 256:
+            raise ValueError(
+                f"LUT size too large: {lut_size}. Maximum supported is 256."
+            )
+
         # Calculate Hald image dimensions
         width = lut_size * lut_size  # 33 * 33 = 1089
         height = lut_size  # 33
 
-        return cls.create_backend(name, width, height, platform_name)
+        try:
+            return cls.create_backend(name, width, height, platform_name)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to create LUT streamer for {lut_size}x{lut_size}x{lut_size}: {e}"
+            ) from e
 
     @classmethod
     def list_supported_formats(cls, platform_name: str | None = None) -> list[str]:

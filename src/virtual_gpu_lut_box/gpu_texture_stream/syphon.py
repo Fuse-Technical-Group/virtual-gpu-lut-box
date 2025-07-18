@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import importlib.util
 import platform
 import time
@@ -10,14 +9,12 @@ from typing import Any
 
 import numpy as np
 
-from .base import InitializationError, StreamingBackend
+from .base import InitializationError, StreamingBackend, TextureFormatError
 
 try:
     import Metal
-
-    METAL_AVAILABLE = True
 except ImportError:
-    METAL_AVAILABLE = False
+    Metal = None  # type: ignore[assignment]
 
 
 class SyphonBackend(StreamingBackend):
@@ -51,7 +48,7 @@ class SyphonBackend(StreamingBackend):
             return False
 
         # Try to import syphon-python and Metal
-        return METAL_AVAILABLE and importlib.util.find_spec("syphon") is not None
+        return Metal is not None and importlib.util.find_spec("syphon") is not None
 
     def initialize(self) -> bool:
         """Initialize the Syphon Metal server.
@@ -103,12 +100,16 @@ class SyphonBackend(StreamingBackend):
 
         Returns:
             True if send successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If texture data is invalid
         """
         if not self._initialized or self._server is None:
-            return False
+            raise RuntimeError(f"Syphon backend '{self.name}' is not initialized")
 
-        if not self.validate_texture_data(texture_data):
-            return False
+        # This will raise TextureFormatError if invalid
+        self.validate_texture_data(texture_data)
 
         try:
             # Create or update Metal texture
@@ -181,17 +182,17 @@ class SyphonBackend(StreamingBackend):
         }
 
         if self._initialized and self._server is not None:
-            with contextlib.suppress(Exception):
-                info.update(
-                    {
-                        "server_active": True,
-                        "has_clients": self.has_clients,
-                        "supported_formats": self.get_supported_formats(),
-                        "metal_device": self._device.name()
-                        if self._device
-                        else "Unknown",
-                    }
-                )
+            try:
+                additional_info: dict[str, Any] = {
+                    "server_active": True,
+                    "has_clients": bool(self.has_clients),
+                    "supported_formats": self.get_supported_formats(),
+                    "metal_device": self._device.name() if self._device else "Unknown",
+                }
+                info.update(additional_info)
+            except Exception as e:
+                # Log the error but don't let it prevent basic info from being returned
+                print(f"Warning: Could not get extended Syphon info: {e}")
 
         return info
 
@@ -264,16 +265,30 @@ class SyphonBackend(StreamingBackend):
 
         Returns:
             True if successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If Hald image dimensions are incorrect
         """
         if not self._initialized:
-            return False
+            raise RuntimeError(f"Syphon backend '{self.name}' is not initialized")
 
         # Validate hald image dimensions
         if hald_image.shape[:2] != (self.height, self.width):
-            return False
+            raise TextureFormatError(
+                f"Hald image dimension mismatch: expected {self.height}x{self.width}, "
+                f"got {hald_image.shape[0]}x{hald_image.shape[1]}"
+            )
 
-        # Convert to RGBA format for Metal
-        rgba_data = self.convert_texture_format(hald_image, "rgba")
+        # Convert to RGBA format for Metal while preserving data type
+        try:
+            rgba_data = self.convert_texture_format(hald_image, "rgba")
+            # Ensure we keep the original data type (float32 for LUTs)
+            rgba_data = rgba_data.astype(hald_image.dtype)
+        except Exception as e:
+            raise TextureFormatError(
+                f"Failed to convert Hald image to RGBA: {e}"
+            ) from e
 
         # Send texture
         return self.send_texture(rgba_data)
@@ -287,7 +302,7 @@ class SyphonBackend(StreamingBackend):
         info = {}
 
         if self._initialized and self._device:
-            with contextlib.suppress(Exception):
+            try:
                 info.update(
                     {
                         "device_name": self._device.name(),
@@ -296,6 +311,9 @@ class SyphonBackend(StreamingBackend):
                         "max_texture_size": "16384x16384",  # Metal typical limit
                     }
                 )
+            except Exception as e:
+                # Log the error but don't let it prevent basic info from being returned
+                print(f"Warning: Could not get Metal device info: {e}")
 
         return info
 
@@ -320,7 +338,7 @@ class SyphonBackend(StreamingBackend):
         Returns:
             True if successful, False otherwise
         """
-        if not METAL_AVAILABLE:
+        if Metal is None:
             return False
 
         try:
@@ -352,35 +370,44 @@ class SyphonBackend(StreamingBackend):
         Returns:
             True if successful, False otherwise
         """
-        if not METAL_AVAILABLE or self._device is None:
+        if Metal is None or self._device is None:
             return False
 
         try:
             # Prepare texture data
             height, width, channels = texture_data.shape
 
-            # Convert to RGBA format if needed
+            # Convert to RGBA format if needed and preserve float32 precision
             if channels == 3:
-                # Add alpha channel
-                alpha = np.full((height, width, 1), 255, dtype=np.uint8)
+                # Add alpha channel (1.0 for float32, 255 for uint8)
+                if texture_data.dtype == np.float32:
+                    alpha = np.full((height, width, 1), 1.0, dtype=np.float32)
+                else:
+                    alpha = np.full((height, width, 1), 255, dtype=np.uint8)
                 rgba_data = np.concatenate([texture_data, alpha], axis=2)
             elif channels == 4:
                 rgba_data = texture_data
             else:
                 raise ValueError(f"Unsupported channel count: {channels}")
 
-            # Convert to uint8 if needed
-            if rgba_data.dtype == np.float32:
-                rgba_data = (rgba_data * 255).astype(np.uint8)
-            else:
-                rgba_data = rgba_data.astype(np.uint8)
-
             # Ensure contiguous array
             rgba_data = np.ascontiguousarray(rgba_data)
 
+            # Choose appropriate Metal pixel format based on data type
+            if rgba_data.dtype == np.float32:
+                pixel_format = Metal.MTLPixelFormatRGBA32Float
+                bytes_per_pixel = 16  # 4 channels × 4 bytes per float32
+                print("🎯 Using 32-bit float texture format for high precision LUT")
+            else:
+                # Convert to uint8 for 8-bit format
+                rgba_data = rgba_data.astype(np.uint8)
+                pixel_format = Metal.MTLPixelFormatRGBA8Unorm
+                bytes_per_pixel = 4  # 4 channels × 1 byte per uint8
+                print("📦 Using 8-bit texture format")
+
             # Create texture descriptor
             texture_desc = Metal.MTLTextureDescriptor.texture2DDescriptorWithPixelFormat_width_height_mipmapped_(
-                Metal.MTLPixelFormatRGBA8Unorm, width, height, False
+                pixel_format, width, height, False
             )
             texture_desc.setUsage_(
                 Metal.MTLTextureUsageShaderRead | Metal.MTLTextureUsageShaderWrite
@@ -388,13 +415,15 @@ class SyphonBackend(StreamingBackend):
 
             # Create the texture
             self._texture = self._device.newTextureWithDescriptor_(texture_desc)
+            if self._texture is None:
+                raise RuntimeError("Failed to create Metal texture")
 
             # Upload data to texture
             region = Metal.MTLRegion(
                 Metal.MTLOrigin(0, 0, 0), Metal.MTLSize(width, height, 1)
             )
             self._texture.replaceRegion_mipmapLevel_withBytes_bytesPerRow_(
-                region, 0, rgba_data.tobytes(), width * 4
+                region, 0, rgba_data.tobytes(), width * bytes_per_pixel
             )
 
             return True

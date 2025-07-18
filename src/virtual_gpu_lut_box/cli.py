@@ -5,13 +5,15 @@ from __future__ import annotations
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import click
 import numpy as np
 
+from .gpu_texture_stream.factory import PlatformNotSupportedError, StreamingFactory
 from .lut.generator import LUTGenerator
 from .lut.hald_converter import HaldConverter
-from .streaming.factory import PlatformNotSupportedError, StreamingFactory
+from .network import OpenGradeIOLUTStreamer, OpenGradeIOServer
 
 
 @click.group()
@@ -129,6 +131,7 @@ def stream(
 
         # Calculate frame delay
         frame_delay = 1.0 / fps
+        frame_count = 0
 
         # Stream loop
         try:
@@ -141,8 +144,6 @@ def stream(
                     )
                 else:
                     click.echo(f"Streaming at {fps} FPS. Press Ctrl+C to stop.")
-
-                frame_count = 0
                 start_streaming_time = time.time()
 
                 while True:
@@ -315,6 +316,10 @@ def live(
     interactive: bool,
 ) -> None:
     """Live LUT generation and streaming."""
+    if interactive:
+        click.echo("Interactive mode is not yet implemented")
+        return
+
     try:
         # Load base Hald image
         converter = HaldConverter(size)
@@ -335,13 +340,12 @@ def live(
 
         # Calculate frame delay
         frame_delay = 1.0 / fps
+        frame_count = 0
 
         # Stream loop
         try:
             with backend:
                 click.echo(f"Live streaming at {fps} FPS. Press Ctrl+C to stop.")
-
-                frame_count = 0
                 while True:
                     start_time = time.time()
 
@@ -381,6 +385,89 @@ def live(
 
         click.echo(f"Streamed {frame_count} frames total")
 
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.option("--host", default="127.0.0.1", help="Server host address")
+@click.option("--port", default=8089, help="Server port number")
+@click.option(
+    "--stream-name",
+    default="OpenGradeIO-LUT",
+    help="Spout/Syphon stream name",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+def listen(
+    host: str,
+    port: int,
+    stream_name: str,
+    verbose: bool,
+) -> None:
+    """Start OpenGradeIO virtual LUT box server."""
+    import logging
+
+    # Configure logging
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+    try:
+        click.echo(f"Starting OpenGradeIO virtual LUT box server on {host}:{port}")
+        click.echo(f"Stream name: {stream_name}")
+
+        # Create LUT streamer (will initialize lazily when first LUT is received)
+        streamer = OpenGradeIOLUTStreamer(stream_name=stream_name)
+
+        # Create LUT callback wrapper
+        def lut_callback(
+            lut_data: np.ndarray[Any, Any], channel_name: str | None = None
+        ) -> None:
+            try:
+                streamer.process_lut(lut_data, channel_name)
+                # Success - no need to log unless verbose
+                if verbose:
+                    channel_info = (
+                        f" for channel '{channel_name}'" if channel_name else ""
+                    )
+                    click.echo(
+                        f"Successfully processed {lut_data.shape[0]}³ LUT{channel_info}"
+                    )
+            except ValueError as e:
+                click.echo(f"Invalid LUT data: {e}", err=True)
+            except RuntimeError as e:
+                click.echo(f"Streaming error: {e}", err=True)
+            except Exception as e:
+                click.echo(f"Unexpected error processing LUT: {e}", err=True)
+
+        # Create and configure server
+        server = OpenGradeIOServer(
+            host=host,
+            port=port,
+            lut_callback=lut_callback,
+        )
+
+        # Start server
+        server.start()
+
+        try:
+            click.echo("OpenGradeIO server running. Press Ctrl+C to stop.")
+            while server.is_running:
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            click.echo("\nStopping server...")
+        finally:
+            server.stop()
+            streamer.stop_streaming()
+
+        click.echo("Server stopped")
+
+    except PlatformNotSupportedError as e:
+        click.echo(f"Platform error: {e}", err=True)
+        click.echo("Streaming not supported on this platform")
+        sys.exit(1)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

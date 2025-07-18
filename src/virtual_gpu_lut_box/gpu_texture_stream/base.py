@@ -48,6 +48,10 @@ class StreamingBackend(ABC):
 
         Returns:
             True if send successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If texture data is invalid
         """
         pass
 
@@ -82,36 +86,63 @@ class StreamingBackend(ABC):
 
         Returns:
             True if valid, False otherwise
+
+        Raises:
+            TextureFormatError: If texture data is fundamentally invalid
         """
         # Check if numpy array
         if not isinstance(texture_data, np.ndarray):
-            return False  # type: ignore[unreachable]
+            raise TextureFormatError(f"Expected numpy array, got {type(texture_data)}")
 
         # Check dimensions
         if len(texture_data.shape) != 3:
-            return False
+            raise TextureFormatError(
+                f"Expected 3D array (height, width, channels), got {len(texture_data.shape)}D: {texture_data.shape}"
+            )
 
         height, width, channels = texture_data.shape
 
         # Check size matches expected
         if height != self.height or width != self.width:
-            return False
+            raise TextureFormatError(
+                f"Dimension mismatch: expected {self.height}x{self.width}, got {height}x{width}"
+            )
 
         # Check channel count (RGB or RGBA)
         if channels not in [3, 4]:
-            return False
+            raise TextureFormatError(
+                f"Unsupported channel count: {channels}. Expected 3 (RGB) or 4 (RGBA)"
+            )
 
         # Check data type
         if texture_data.dtype not in [np.uint8, np.float32]:
-            return False
+            raise TextureFormatError(
+                f"Unsupported data type: {texture_data.dtype}. Expected uint8 or float32"
+            )
 
         # Check value range
         if texture_data.dtype == np.uint8:
             if np.any(texture_data < 0) or np.any(texture_data > 255):
-                return False
+                raise TextureFormatError(
+                    f"uint8 values out of range [0, 255]: [{texture_data.min()}, {texture_data.max()}]"
+                )
         elif texture_data.dtype == np.float32:  # noqa: SIM102
+            # For LUT data, values can be outside [0,1] range (e.g., for HDR or creative looks)
+            # Just ensure they're reasonable finite values
+            if np.any(~np.isfinite(texture_data)):
+                raise TextureFormatError(
+                    f"float32 contains non-finite values (NaN/Inf): [{texture_data.min()}, {texture_data.max()}]"
+                )
+            # Log if values are outside typical [0,1] range for debugging
             if np.any(texture_data < 0) or np.any(texture_data > 1):
-                return False
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug(
+                    "LUT contains values outside [0,1] range: [%.3f, %.3f] - this is normal for HDR/creative LUTs",
+                    texture_data.min(),
+                    texture_data.max(),
+                )
 
         return True
 
@@ -132,10 +163,11 @@ class StreamingBackend(ABC):
 
         height, width, channels = texture_data.shape
 
-        # Convert to float32 for processing
+        # Keep data in original format for processing to preserve precision
         if texture_data.dtype == np.uint8:
             data = texture_data.astype(np.float32) / 255.0
         else:
+            # Keep float32 data as-is to preserve full precision
             data = texture_data.copy()
 
         # Handle format conversion
@@ -188,7 +220,16 @@ class StreamingBackend(ABC):
 
         Returns:
             True if successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If texture data is invalid
         """
+        if not self._initialized:
+            raise RuntimeError(
+                f"Backend '{self.name}' is not initialized. Call initialize() first."
+            )
+
         return self.send_texture(hald_image)
 
     def __enter__(self) -> StreamingBackend:
@@ -199,6 +240,7 @@ class StreamingBackend(ABC):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
+        del exc_type, exc_val, exc_tb  # Mark as used for static analysis
         self.cleanup()
 
     def __del__(self) -> None:

@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from virtual_gpu_lut_box.streaming.base import StreamingBackend
-from virtual_gpu_lut_box.streaming.factory import (
+from virtual_gpu_lut_box.gpu_texture_stream.base import StreamingBackend
+from virtual_gpu_lut_box.gpu_texture_stream.factory import (
     PlatformNotSupportedError,
     StreamingFactory,
 )

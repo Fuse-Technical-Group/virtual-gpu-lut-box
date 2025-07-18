@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LiveGrade integration example for virtual-gpu-lut-box."""
+"""OpenGradeIO integration example for virtual-gpu-lut-box."""
 
 import time
 from typing import Optional
@@ -9,8 +9,8 @@ import numpy as np
 from virtual_gpu_lut_box import HaldConverter, LUTGenerator, StreamingFactory
 
 
-class LiveGradingLUTBox:
-    """A LiveGrade-compatible LUT box for real-time color correction streaming."""
+class OpenGradeIOLUTBox:
+    """An OpenGradeIO-compatible LUT box for real-time color correction streaming."""
 
     def __init__(self, stream_name: str = "virtual-gpu-lut-box", lut_size: int = 33):
         """Initialize the LUT box.
@@ -66,7 +66,7 @@ class LiveGradingLUTBox:
         self.streaming = True
         frame_delay = 1.0 / fps
 
-        print(f"Starting LiveGrade LUT streaming at {fps} FPS")
+        print(f"Starting OpenGradeIO LUT streaming at {fps} FPS")
         print(f"Stream name: {self.stream_name}")
         print(f"LUT size: {self.lut_size}x{self.lut_size}x{self.lut_size}")
         print("Press Ctrl+C to stop")
@@ -254,9 +254,9 @@ class LiveGradingLUTBox:
         self.cleanup()
 
 
-def demo_livegrading_workflow():
-    """Demonstrate a typical LiveGrade workflow."""
-    print("=== LiveGrade Integration Demo ===")
+def demo_opengradeio_workflow():
+    """Demonstrate a typical OpenGradeIO workflow."""
+    print("=== OpenGradeIO Integration Demo ===")
 
     # Check platform support
     if not StreamingFactory.is_platform_supported():
@@ -264,7 +264,7 @@ def demo_livegrading_workflow():
         return
 
     # Create LUT box (uses default name "virtual-gpu-lut-box")
-    lut_box = LiveGradingLUTBox(lut_size=33)
+    lut_box = OpenGradeIOLUTBox(lut_size=33)
 
     # Initialize
     if not lut_box.initialize():
@@ -277,8 +277,8 @@ def demo_livegrading_workflow():
         for key, value in lut_box.get_status().items():
             print(f"  {key}: {value}")
 
-        # Simulate LiveGrade workflow
-        print("\\nSimulating LiveGrade workflow...")
+        # Simulate OpenGradeIO workflow
+        print("\\nSimulating OpenGradeIO workflow...")
 
         # 1. Start with identity
         lut_box.reset_to_identity()
@@ -329,7 +329,7 @@ def interactive_lut_control():
         print("Streaming not supported on this platform")
         return
 
-    lut_box = LiveGradingLUTBox("Interactive LUT", lut_size=33)
+    lut_box = OpenGradeIOLUTBox("Interactive LUT", lut_size=33)
 
     if not lut_box.initialize():
         print("Failed to initialize LUT box")
@@ -429,11 +429,11 @@ def interactive_lut_control():
 
 def main():
     """Main function."""
-    print("Virtual GPU LUT Box - LiveGrade Integration Examples")
+    print("Virtual GPU LUT Box - OpenGradeIO Integration Examples")
     print("=" * 60)
 
     # Run demo
-    demo_livegrading_workflow()
+    demo_opengradeio_workflow()
 
     # Ask if user wants interactive mode
     try:

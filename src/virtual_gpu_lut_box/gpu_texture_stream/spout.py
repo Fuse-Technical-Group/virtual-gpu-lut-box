@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import contextlib
 import importlib.util
 import platform
 from typing import Any
 
 import numpy as np
 
-from .base import InitializationError, StreamingBackend
+from .base import InitializationError, StreamingBackend, TextureFormatError
 
 
 class SpoutBackend(StreamingBackend):
@@ -85,12 +84,16 @@ class SpoutBackend(StreamingBackend):
 
         Returns:
             True if send successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If texture data is invalid
         """
         if not self._initialized or self._sender is None:
-            return False
+            raise RuntimeError(f"Spout backend '{self.name}' is not initialized")
 
-        if not self.validate_texture_data(texture_data):
-            return False
+        # This will raise TextureFormatError if invalid
+        self.validate_texture_data(texture_data)
 
         try:
             # Convert to format expected by SpoutGL
@@ -115,16 +118,20 @@ class SpoutBackend(StreamingBackend):
         """
         height, width, channels = texture_data.shape
 
-        # Convert to uint8 if needed
+        # Preserve float32 precision when possible, otherwise convert to uint8
         if texture_data.dtype == np.float32:
-            data = (texture_data * 255).astype(np.uint8)
+            print("🎯 Preserving 32-bit float precision for SpoutGL")
+            data = texture_data.copy()
+            alpha_value = 1.0
         else:
+            print("📦 Converting to 8-bit format for SpoutGL")
             data = texture_data.astype(np.uint8)
+            alpha_value = 255
 
         # SpoutGL expects RGBA format
         if channels == 3:
-            # Add alpha channel
-            alpha = np.full((height, width, 1), 255, dtype=np.uint8)
+            # Add alpha channel with appropriate value type
+            alpha = np.full((height, width, 1), alpha_value, dtype=data.dtype)
             data = np.concatenate([data, alpha], axis=2)
         elif channels == 4:
             # Already RGBA
@@ -141,9 +148,13 @@ class SpoutBackend(StreamingBackend):
     def cleanup(self) -> None:
         """Clean up SpoutGL resources."""
         if self._sender is not None:
-            with contextlib.suppress(Exception):
+            try:
                 self._sender.release()
-            self._sender = None
+            except Exception as e:
+                # Log the error but continue cleanup
+                print(f"Warning: Error releasing Spout sender: {e}")
+            finally:
+                self._sender = None
 
         self._spout_gl = None
         self._initialized = False
@@ -172,14 +183,16 @@ class SpoutBackend(StreamingBackend):
         }
 
         if self._initialized and self._sender is not None:
-            with contextlib.suppress(Exception):
+            try:
                 # Get additional info from SpoutGL if available
-                info.update(
-                    {
-                        "sender_active": True,
-                        "supported_formats": self.get_supported_formats(),
-                    }
-                )
+                additional_info: dict[str, Any] = {
+                    "sender_active": True,
+                    "supported_formats": self.get_supported_formats(),
+                }
+                info.update(additional_info)
+            except Exception as e:
+                # Log the error but don't let it prevent basic info from being returned
+                print(f"Warning: Could not get extended Spout info: {e}")
 
         return info
 
@@ -227,7 +240,7 @@ class SpoutBackend(StreamingBackend):
         info = {}
 
         if self._initialized and self._spout_gl is not None:
-            with contextlib.suppress(Exception):
+            try:
                 # Get adapter info if available in SpoutGL
                 info.update(
                     {
@@ -235,6 +248,9 @@ class SpoutBackend(StreamingBackend):
                         "adapter_description": "Windows Graphics Adapter",
                     }
                 )
+            except Exception as e:
+                # Log the error but don't let it prevent basic info from being returned
+                print(f"Warning: Could not get Spout adapter info: {e}")
 
         return info
 
@@ -304,16 +320,30 @@ class SpoutBackend(StreamingBackend):
 
         Returns:
             True if successful, False otherwise
+
+        Raises:
+            RuntimeError: If backend is not initialized
+            TextureFormatError: If Hald image dimensions are incorrect
         """
         if not self._initialized:
-            return False
+            raise RuntimeError(f"Spout backend '{self.name}' is not initialized")
 
         # Validate hald image dimensions
         if hald_image.shape[:2] != (self.height, self.width):
-            return False
+            raise TextureFormatError(
+                f"Hald image dimension mismatch: expected {self.height}x{self.width}, "
+                f"got {hald_image.shape[0]}x{hald_image.shape[1]}"
+            )
 
-        # Convert to RGBA format for SpoutGL
-        rgba_data = self.convert_texture_format(hald_image, "rgba")
+        # Convert to RGBA format for SpoutGL while preserving data type
+        try:
+            rgba_data = self.convert_texture_format(hald_image, "rgba")
+            # Ensure we keep the original data type (float32 for LUTs)
+            rgba_data = rgba_data.astype(hald_image.dtype)
+        except Exception as e:
+            raise TextureFormatError(
+                f"Failed to convert Hald image to RGBA: {e}"
+            ) from e
 
         # Send texture
         return self.send_texture(rgba_data)

@@ -32,17 +32,19 @@ dependencies = [
     "numpy>=1.21.0",
     "pillow>=9.0.0",
     "click>=8.0.0",
+    "bson>=0.5.0",
     # Platform-specific streaming dependencies
     "SpoutGL>=0.1.0; platform_system=='Windows'",
     "syphon-python>=0.1.1; platform_system=='Darwin'",
     "PyOpenGL>=3.1.0; platform_system=='Windows' or platform_system=='Darwin'",
     "glfw>=2.5.0; platform_system=='Darwin'",
+    "pyobjc-framework-metal>=9.0 ; platform_system == 'Darwin'",
 ]
 
 [project.optional-dependencies]
 dev = [
     "ruff>=0.1.0",
-    "mypy>=1.7.0",
+    "pyright>=1.1.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pre-commit>=3.0.0",
@@ -90,6 +92,7 @@ select = [
     "T20", # flake8-print
     "SIM", # flake8-simplify
     "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
 ]
 ignore = [
     "E501",  # line too long, handled by formatter
@@ -102,36 +105,57 @@ ignore = [
 "tests/*" = ["S101", "T201"]
 "src/virtual_gpu_lut_box/cli.py" = ["T201"]
 
+[tool.ruff.lint.flake8-tidy-imports]
+# Ban relative imports beyond parent level (.. is ok, ... is not)
+ban-relative-imports = "parents"
+# Enforce fully qualified imports for common stdlib modules  
+banned-module-level-imports = ["typing.*", "collections.*", "os.path"]
+
+# Create a pre-commit hook or manual check for contextlib.suppress patterns
+# (Ruff doesn't have direct pattern matching for specific function calls)
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-show_error_codes = true
+[tool.pyright]
+pythonVersion = "3.9"
+include = ["src/virtual_gpu_lut_box"]
+exclude = ["**/__pycache__", "**/node_modules", "**/streaming/spout.py"]
+reportMissingImports = true
+reportMissingTypeStubs = false
+# Ignore missing imports for external dependencies
+reportMissingModuleSource = false
+reportUnusedImport = true
+reportUnusedClass = true
+reportUnusedFunction = true
+reportUnusedVariable = true
+reportDuplicateImport = true
+reportOptionalSubscript = true
+reportOptionalMemberAccess = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportOptionalOperand = true
+reportTypedDictNotRequiredAccess = false
+reportPrivateUsage = true
+reportTypeCommentUsage = true
+reportIncompatibleMethodOverride = true
+reportIncompatibleVariableOverride = true
+reportInconsistentConstructor = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+analyzeUnannotatedFunctions = true
+strictParameterNoneValue = true
+enableTypeIgnoreComments = true
+reportCallInDefaultInitializer = false
+reportNameShadowing = false
+reportPropertyTypeMismatch = true
+reportImportCycles = true
 
-[[tool.mypy.overrides]]
-module = [
-    "SpoutGL.*",
-    "syphon.*",
-    "OpenGL.*",
-    "Metal.*",
-]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
