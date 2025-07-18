@@ -1,0 +1,212 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "virtual-gpu-lut-box"
+dynamic = ["version"]
+description = "Cross-platform LUT streaming for GPU shaders via Spout and Syphon. Compatible with TouchDesigner 2025 (Python 3.11)."
+readme = "README.md"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "Fuse Technical Group", email = "4462072+repentsinner@users.noreply.github.com"},
+]
+maintainers = [
+    {name = "Fuse Technical Group", email = "4462072+repentsinner@users.noreply.github.com"},
+]
+keywords = ["lut", "gpu", "shader", "spout", "syphon", "color-correction", "livegrading"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "numpy>=1.21.0",
+    "click>=8.0.0",
+    "bson>=0.5.0",
+    # Platform-specific streaming dependencies
+    "SpoutGL>=0.1.0; platform_system=='Windows'",
+    "syphon-python>=0.1.1; platform_system=='Darwin'",
+    "PyOpenGL>=3.1.0; platform_system=='Windows' or platform_system=='Darwin'",
+    "glfw>=2.5.0; platform_system=='Darwin'",
+    "pyobjc-framework-metal>=9.0 ; platform_system == 'Darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "pyright>=1.1.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pre-commit>=3.0.0",
+    "invoke>=2.0.0",
+    "build>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/repentsinner/virtual-gpu-lut-box"
+Repository = "https://github.com/repentsinner/virtual-gpu-lut-box"
+Issues = "https://github.com/repentsinner/virtual-gpu-lut-box/issues"
+Documentation = "https://github.com/repentsinner/virtual-gpu-lut-box#readme"
+
+[project.scripts]
+virtual-gpu-lut-box = "virtual_gpu_lut_box.cli:main"
+vglb = "virtual_gpu_lut_box.cli:main"
+
+[tool.hatch.version]
+path = "src/virtual_gpu_lut_box/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/virtual_gpu_lut_box", "src/vglb.py"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "S",  # flake8-bandit
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "RET", # flake8-return
+    "UP032", # f-string usage
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "S101",  # use of assert
+    "T201",  # print statements (allowed in CLI)
+    "RET503", # missing explicit return (allow implicit None returns)
+    "RET504", # unnecessary assignment before return (can be stylistic)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T201"]
+"src/virtual_gpu_lut_box/cli.py" = ["T201"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Ban relative imports beyond parent level (.. is ok, ... is not)
+ban-relative-imports = "parents"
+# Enforce fully qualified imports for common stdlib modules
+banned-module-level-imports = ["typing.*", "collections.*", "os.path"]
+
+# Create a pre-commit hook or manual check for contextlib.suppress patterns
+# (Ruff doesn't have direct pattern matching for specific function calls)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pyright]
+pythonVersion = "3.11"
+include = ["src/virtual_gpu_lut_box"]
+exclude = ["**/__pycache__", "**/node_modules", "**/gpu_texture_stream/spout.py"]
+reportMissingImports = true
+reportMissingTypeStubs = false
+# Ignore missing imports for external dependencies
+reportMissingModuleSource = false
+reportUnusedImport = true
+reportUnusedClass = true
+reportUnusedFunction = true
+reportUnusedVariable = true
+reportDuplicateImport = true
+reportOptionalSubscript = true
+reportOptionalMemberAccess = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportOptionalOperand = true
+reportTypedDictNotRequiredAccess = false
+reportPrivateUsage = true
+reportTypeCommentUsage = true
+reportIncompatibleMethodOverride = true
+reportIncompatibleVariableOverride = true
+reportInconsistentConstructor = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+analyzeUnannotatedFunctions = true
+strictParameterNoneValue = true
+enableTypeIgnoreComments = true
+reportCallInDefaultInitializer = false
+reportNameShadowing = false
+reportPropertyTypeMismatch = true
+reportImportCycles = true
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=virtual_gpu_lut_box",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "windows: marks tests as Windows-specific",
+    "macos: marks tests as macOS-specific",
+]
+
+[tool.coverage.run]
+source = ["src/virtual_gpu_lut_box"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+]
