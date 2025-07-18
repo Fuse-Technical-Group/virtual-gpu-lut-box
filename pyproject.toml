@@ -206,6 +206,7 @@ directory = "htmlcov"
 
 [dependency-groups]
 dev = [
+    "bandit>=1.8.6",
     "build>=1.2.2.post1",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",

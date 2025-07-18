@@ -186,14 +186,10 @@ class StreamingFactory:
         if platform_name not in cls._backends:
             return []
 
-        try:
-            backend_class = cls._backends[platform_name]
-            backend = backend_class("test", 1, 1)
-            if backend.is_available():
-                return backend.get_supported_formats()
-        except Exception:  # noqa: S110
-            # Backend unavailable or failed to initialize
-            pass
+        backend_class = cls._backends[platform_name]
+        backend = backend_class("test", 1, 1)
+        if backend.is_available():
+            return backend.get_supported_formats()
 
         return []
 

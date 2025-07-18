@@ -41,6 +41,12 @@ repos:
         ]
         exclude: ^(docs/|tasks\.py|tests/|src/virtual_gpu_lut_box/gpu_texture_stream/syphon\.py|src/virtual_gpu_lut_box/gpu_texture_stream/spout\.py)
 
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: [-r, src/virtual_gpu_lut_box]
+
   - repo: local
     hooks:
       - id: pytest
