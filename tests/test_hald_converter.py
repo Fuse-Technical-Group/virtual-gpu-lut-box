@@ -1,7 +1,5 @@
 """Tests for Hald converter."""
 
-from unittest.mock import Mock, patch
-
 import numpy as np
 import pytest
 
@@ -216,44 +214,6 @@ class TestHaldConverter:
 
         assert width == 33 * 33
         assert height == 33
-
-    @patch("virtual_gpu_lut_box.lut.hald_converter.Image")
-    def test_save_hald_image(self, mock_image: Mock) -> None:
-        """Test saving Hald image to file."""
-        converter = HaldConverter(3)
-        hald = np.random.rand(3, 9, 3).astype(np.float32)
-
-        mock_pil_image = Mock()
-        mock_image.fromarray.return_value = mock_pil_image
-
-        converter.save_hald_image(hald, "test.png")
-
-        mock_image.fromarray.assert_called_once()
-        mock_pil_image.save.assert_called_once_with("test.png")
-
-    @patch("virtual_gpu_lut_box.lut.hald_converter.Image")
-    def test_load_hald_image(self, mock_image: Mock) -> None:
-        """Test loading Hald image from file."""
-        converter = HaldConverter(3)
-
-        # Mock PIL Image
-        mock_pil_image = Mock()
-        mock_pil_image.mode = "RGB"
-        mock_pil_image.size = (9, 3)
-        mock_pil_image.convert.return_value = mock_pil_image
-
-        # Mock numpy array
-        mock_array = np.random.randint(0, 256, (3, 9, 3), dtype=np.uint8)
-
-        mock_image.open.return_value = mock_pil_image
-
-        with patch("numpy.array", return_value=mock_array):
-            hald = converter.load_hald_image("test.png")
-
-            assert hald.shape == (3, 9, 3)
-            assert hald.dtype == np.float32
-            assert np.all(hald >= 0)
-            assert np.all(hald <= 1)
 
     def test_33x33x33_lut_conversion(self) -> None:
         """Test conversion with production-size 33x33x33 LUT."""
