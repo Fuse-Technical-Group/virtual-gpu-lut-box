@@ -59,14 +59,14 @@ class OpenGradeIOServer:
         self._running = True
         self._server_thread = threading.Thread(target=self._run_server, daemon=True)
         self._server_thread.start()
-        logger.info(f"OpenGradeIO server started on {self.host}:{self.port}")
+        logger.debug(f"OpenGradeIO server started on {self.host}:{self.port}")
 
     def stop(self) -> None:
         """Stop the server and all client connections."""
         if not self._running:
             return
 
-        logger.info("Stopping OpenGradeIO server")
+        logger.debug("Stopping OpenGradeIO server")
         self._running = False
 
         # Close server socket
@@ -86,7 +86,7 @@ class OpenGradeIOServer:
                 thread.join(timeout=1.0)
         self._client_threads.clear()
 
-        logger.info("OpenGradeIO server stopped")
+        logger.debug("OpenGradeIO server stopped")
 
     def _run_server(self) -> None:
         """Main server loop."""
@@ -96,7 +96,7 @@ class OpenGradeIOServer:
             self._server_socket.bind((self.host, self.port))
             self._server_socket.listen(5)
 
-            logger.info(
+            logger.debug(
                 f"Listening for OpenGradeIO connections on {self.host}:{self.port}"
             )
 
@@ -110,9 +110,8 @@ class OpenGradeIOServer:
                         conn.close()
                         break
 
-                    logger.info(
-                        f"OpenGradeIO client connected from {addr[0]}:{addr[1]}"
-                    )
+                    # Client connection - show in quiet mode
+                    print(f"🔌 Client connected from {addr[0]}:{addr[1]}")
 
                     # Start client handler thread
                     client_thread = threading.Thread(
@@ -174,7 +173,8 @@ class OpenGradeIOServer:
         finally:
             try:
                 connection.close()
-                logger.info(f"Client {address[0]}:{address[1]} disconnected")
+                # Client disconnection - show in quiet mode
+                print(f"🔌 Client {address[0]}:{address[1]} disconnected")
             except Exception as e:
                 logger.debug(f"Error during client disconnect cleanup: {e}")
 
@@ -218,31 +218,31 @@ class OpenGradeIOServer:
             True if handled successfully
         """
         try:
-            # Log top-level metadata
+            # Log detailed protocol info only in verbose mode
             if top_level_metadata:
-                logger.info(f"setLUT top-level metadata: {top_level_metadata}")
+                logger.debug(f"setLUT top-level metadata: {top_level_metadata}")
 
-            # Log all arguments to see what OpenGradeIO sends
-            logger.info("setLUT arguments received:")
+            # Log all arguments to see what OpenGradeIO sends (debug only)
+            logger.debug("setLUT arguments received:")
             for key, value in arguments.items():
                 if key == "lutData":
-                    logger.info(
+                    logger.debug(
                         f"  {key}: <binary data, {len(value) if isinstance(value, (bytes, bytearray)) else 'unknown'} bytes>"
                     )
                 else:
-                    logger.info(f"  {key}: {value}")
+                    logger.debug(f"  {key}: {value}")
 
             result = self.protocol.process_set_lut_command(arguments)
             if result is None:
                 return False
 
             lut_array, metadata = result
-            logger.info(
+            logger.debug(
                 f"Processed LUT: shape={lut_array.shape}, dtype={lut_array.dtype}"
             )
 
             if metadata:
-                logger.info(f"LUT metadata: {metadata}")
+                logger.debug(f"LUT metadata: {metadata}")
 
             # Call user callback if provided
             if self.lut_callback:
@@ -250,14 +250,14 @@ class OpenGradeIOServer:
                     # Extract channel/instance name from top-level metadata
                     channel_name = top_level_metadata.get("instance")
 
-                    logger.info("Forwarding LUT to streaming callback")
+                    logger.debug("Forwarding LUT to streaming callback")
                     # Try new signature first (with channel_name), fall back to old if it fails
                     try:
                         self.lut_callback(lut_array, channel_name)  # type: ignore[misc]
                     except TypeError:
                         # Callback doesn't accept channel_name parameter, use old signature
                         self.lut_callback(lut_array)  # type: ignore[misc]
-                    logger.info("LUT callback completed successfully")
+                    logger.debug("LUT callback completed successfully")
                 except Exception as e:
                     logger.error(f"Error in LUT callback: {e}")
                     return False
@@ -280,10 +280,10 @@ class OpenGradeIOServer:
             True if handled successfully
         """
         try:
-            logger.info(f"Received setCDL message with arguments: {arguments}")
+            logger.debug(f"Received setCDL message with arguments: {arguments}")
 
             # For now, just log the reception - actual CDL processing can be added later
-            logger.info("setCDL command processed successfully")
+            logger.debug("setCDL command processed successfully")
             return True
 
         except Exception as e:

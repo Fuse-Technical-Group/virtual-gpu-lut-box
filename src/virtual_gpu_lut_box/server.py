@@ -20,6 +20,7 @@ def start_server(
     port: int = 8089,
     stream_name: str = "OpenGradeIO-LUT",
     verbose: bool = False,
+    info_logging: bool = False,
     blocking: bool = True,
     lut_callback: Callable[[np.ndarray[Any, Any], str | None], None] | None = None,
 ) -> OpenGradeIOServer:
@@ -29,7 +30,8 @@ def start_server(
         host: Server host address
         port: Server port number  
         stream_name: Base Spout/Syphon stream name
-        verbose: Enable verbose logging
+        verbose: Enable verbose (debug) logging
+        info_logging: Enable info-level logging
         blocking: If True, blocks until KeyboardInterrupt. If False, returns server instance.
         lut_callback: Optional custom callback for LUT processing (overrides GPU streaming)
         
@@ -40,16 +42,26 @@ def start_server(
         PlatformNotSupportedError: If GPU streaming not supported on this platform
         RuntimeError: If server cannot be started
     """
-    # Configure logging
-    log_level = logging.DEBUG if verbose else logging.INFO
+    # Configure logging based on flags
+    if verbose:
+        log_level = logging.DEBUG
+    elif info_logging:
+        log_level = logging.INFO
+    else:
+        log_level = logging.WARNING  # Quiet mode - only warnings and errors
+    
     logging.basicConfig(
         level=log_level, 
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     
-    logger.info(f"Starting OpenGradeIO virtual LUT box server on {host}:{port}")
-    logger.info(f"Base stream name: {stream_name}")
-    logger.info("Channel streams will be named: vglb-lut-{channel}")
+    # Essential startup info - always show in quiet mode
+    print(f"🚀 Starting OpenGradeIO virtual LUT box server on {host}:{port}")
+    
+    # Additional info for info/verbose modes
+    if info_logging or verbose:
+        logger.info(f"Base stream name: {stream_name}")
+        logger.info("Channel streams will be named: vglb-lut-{channel}")
     
     # Create LUT streamer (unless custom callback provided)
     streamer = None
@@ -62,6 +74,7 @@ def start_server(
         ) -> None:
             try:
                 streamer.process_lut(lut_data, channel_name)
+                # Only show detailed processing info in verbose mode
                 if verbose:
                     channel_info = f" for channel '{channel_name}'" if channel_name else ""
                     logger.info(f"Successfully processed {lut_data.shape[0]}³ LUT{channel_info}")
@@ -87,20 +100,22 @@ def start_server(
     # Start server
     try:
         server.start()
-        logger.info("OpenGradeIO server started successfully")
+        # Essential status - always show
+        print("✅ OpenGradeIO server started successfully")
         
         if blocking:
             try:
-                logger.info("Server running. Press Ctrl+C to stop.")
+                # Essential status - always show
+                print("🔄 Server running. Press Ctrl+C to stop.")
                 while server.is_running:
                     time.sleep(0.1)
             except KeyboardInterrupt:
-                logger.info("Stopping server...")
+                print("🛑 Stopping server...")
             finally:
                 server.stop()
                 if streamer:
                     streamer.stop_streaming()
-                logger.info("Server stopped")
+                print("✅ Server stopped")
                 
     except Exception as e:
         logger.error(f"Failed to start server: {e}")

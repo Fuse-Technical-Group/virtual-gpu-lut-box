@@ -122,7 +122,7 @@ class ProtocolHandler:
                 f"LUT size mismatch: calculated {lut_size} from data, but lutSize field says {explicit_size}"
             )
 
-        logger.info(
+        logger.debug(
             f"Processing {lut_size}x{lut_size}x{lut_size} LUT ({len(lut_data)} bytes)"
         )
 
@@ -137,12 +137,12 @@ class ProtocolHandler:
         if has_meaningful_alpha:
             # Keep all 4 channels (RGBA)
             lut_3d = rgba_data.reshape(lut_size, lut_size, lut_size, 4)
-            logger.info("Preserving RGBA channels (alpha contains data)")
+            logger.debug("Preserving RGBA channels (alpha contains data)")
         else:
             # Use only RGB channels for efficiency
             rgb_data = rgba_data[:, :3]
             lut_3d = rgb_data.reshape(lut_size, lut_size, lut_size, 3)
-            logger.info("Using RGB channels only (alpha is uniform 1.0)")
+            logger.debug("Using RGB channels only (alpha is uniform 1.0)")
 
         # Preserve exact float32 precision - do NOT clip or convert
         # HDR and creative LUTs may have values outside [0,1] range

@@ -18,7 +18,8 @@ from .server import get_platform_info, start_server
     default="OpenGradeIO-LUT",
     help="Base Spout/Syphon stream name",
 )
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose (debug) logging")
+@click.option("--info-logging", is_flag=True, help="Enable info-level logging")
 @click.option("--info", is_flag=True, help="Show system information and exit")
 @click.version_option()
 def main(
@@ -26,17 +27,20 @@ def main(
     port: int,
     stream_name: str,
     verbose: bool,
+    info_logging: bool,
     info: bool,
 ) -> None:
     """Virtual GPU LUT Box - Network-to-GPU LUT streaming for professional color grading.
 
-    By default, starts the OpenGradeIO server. Use --info to show system information instead.
+    By default, starts the OpenGradeIO server with minimal output.
+    Use --info-logging for detailed operational info, --verbose for debug output.
+    Use --info to show system information instead.
     """
     if info:
         show_system_info()
         return
 
-    start_server_cli(host, port, stream_name, verbose)
+    start_server_cli(host, port, stream_name, verbose, info_logging)
 
 
 def show_system_info() -> None:
@@ -75,6 +79,7 @@ def start_server_cli(
     port: int,
     stream_name: str,
     verbose: bool,
+    info_logging: bool,
 ) -> None:
     """Start OpenGradeIO virtual LUT box server via CLI."""
     try:
@@ -83,6 +88,7 @@ def start_server_cli(
             port=port,
             stream_name=stream_name,
             verbose=verbose,
+            info_logging=info_logging,
             blocking=True,
         )
     except PlatformNotSupportedError as e:
