@@ -8,6 +8,7 @@ import pytest
 from virtual_gpu_lut_box.gpu_texture_stream.base import (
     InitializationError,
     StreamingBackend,
+    TextureFormatError,
 )
 from virtual_gpu_lut_box.gpu_texture_stream.factory import (
     PlatformNotSupportedError,
@@ -61,14 +62,14 @@ class TestStreamingBackend:
     def test_validate_texture_data_valid_rgb(self) -> None:
         """Test texture data validation with valid RGB data."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.uint8)
+        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
 
         assert backend.validate_texture_data(texture_data) is True
 
     def test_validate_texture_data_valid_rgba(self) -> None:
         """Test texture data validation with valid RGBA data."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.uint8)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
 
         assert backend.validate_texture_data(texture_data) is True
 
@@ -82,52 +83,51 @@ class TestStreamingBackend:
     def test_validate_texture_data_wrong_dimensions(self) -> None:
         """Test texture data validation with wrong dimensions."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(
-            0, 256, (20, 15, 3), dtype=np.uint8
-        )  # Wrong width
+        texture_data = np.random.rand(20, 15, 3).astype(np.float32)  # Wrong width
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="Dimension mismatch"):
+            backend.validate_texture_data(texture_data)
 
     def test_validate_texture_data_wrong_shape(self) -> None:
         """Test texture data validation with wrong shape."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(
-            0, 256, (20, 10), dtype=np.uint8
-        )  # Missing channel dim
+        texture_data = np.random.rand(20, 10).astype(np.float32)  # Missing channel dim
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="Expected 3D array"):
+            backend.validate_texture_data(texture_data)
 
     def test_validate_texture_data_wrong_channels(self) -> None:
         """Test texture data validation with wrong channel count."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(
-            0, 256, (20, 10, 2), dtype=np.uint8
-        )  # 2 channels
+        texture_data = np.random.rand(20, 10, 2).astype(np.float32)  # 2 channels
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="Unsupported channel count"):
+            backend.validate_texture_data(texture_data)
 
     def test_validate_texture_data_wrong_dtype(self) -> None:
         """Test texture data validation with wrong data type."""
         backend = MockBackend("test", 10, 20)
         texture_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.int32)
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="Unsupported data type"):
+            backend.validate_texture_data(texture_data)
 
     def test_validate_texture_data_invalid_range_uint8(self) -> None:
-        """Test texture data validation with invalid uint8 range."""
+        """Test texture data validation with uint8 data (unsupported)."""
         backend = MockBackend("test", 10, 20)
         texture_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.uint8)
-        texture_data[0, 0, 0] = 256  # Invalid value
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="Unsupported data type"):
+            backend.validate_texture_data(texture_data)
 
     def test_validate_texture_data_invalid_range_float32(self) -> None:
         """Test texture data validation with invalid float32 range."""
         backend = MockBackend("test", 10, 20)
         texture_data = np.random.rand(20, 10, 3).astype(np.float32)
-        texture_data[0, 0, 0] = 1.5  # Invalid value
+        texture_data[0, 0, 0] = np.nan  # Invalid value
 
-        assert backend.validate_texture_data(texture_data) is False
+        with pytest.raises(TextureFormatError, match="non-finite values"):
+            backend.validate_texture_data(texture_data)
 
     def test_convert_texture_format_rgb_to_rgba(self) -> None:
         """Test texture format conversion from RGB to RGBA."""
@@ -165,11 +165,8 @@ class TestStreamingBackend:
         backend = MockBackend("test", 10, 20)
         uint8_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.uint8)
 
-        float32_data = backend.convert_texture_format(uint8_data, "rgb")
-
-        assert float32_data.dtype == np.float32
-        assert np.all(float32_data >= 0)
-        assert np.all(float32_data <= 1)
+        with pytest.raises(TextureFormatError, match="Unsupported data type"):
+            backend.convert_texture_format(uint8_data, "rgb")
 
     def test_convert_texture_format_invalid_format(self) -> None:
         """Test texture format conversion with invalid format."""
@@ -192,7 +189,10 @@ class TestStreamingBackend:
         """Test context manager with failed initialization."""
         backend = MockBackend("test", 10, 20, available=False)
 
-        with pytest.raises(RuntimeError, match="Failed to initialize"), backend:
+        with (
+            pytest.raises(InitializationError, match="Mock backend not available"),
+            backend,
+        ):
             pass
 
     def test_send_texture_success(self) -> None:
@@ -203,16 +203,16 @@ class TestStreamingBackend:
         texture_data = np.random.rand(20, 10, 3).astype(np.float32)
         result = backend.send_texture(texture_data)
 
-        assert result is True
+        assert result is None  # send_texture returns None on success
 
     def test_send_texture_not_initialized(self) -> None:
         """Test texture sending when not initialized."""
         backend = MockBackend("test", 10, 20)
 
         texture_data = np.random.rand(20, 10, 3).astype(np.float32)
-        result = backend.send_texture(texture_data)
 
-        assert result is False
+        with pytest.raises(RuntimeError, match="not initialized"):
+            backend.send_texture(texture_data)
 
     def test_send_texture_invalid_data(self) -> None:
         """Test texture sending with invalid data."""
@@ -220,9 +220,9 @@ class TestStreamingBackend:
         backend.initialize()
 
         texture_data = np.random.rand(15, 10, 3).astype(np.float32)  # Wrong height
-        result = backend.send_texture(texture_data)
 
-        assert result is False
+        with pytest.raises(TextureFormatError, match="Dimension mismatch"):
+            backend.send_texture(texture_data)
 
 
 class TestStreamingFactory:
@@ -246,7 +246,7 @@ class TestStreamingFactory:
         backends = StreamingFactory.get_available_backends()
         assert isinstance(backends, list)
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_create_backend_success(self, mock_platform: Mock) -> None:
         """Test successful backend creation."""
         mock_platform.return_value = "TestOS"
@@ -264,7 +264,7 @@ class TestStreamingFactory:
         finally:
             StreamingFactory._backends = original_backends
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_create_backend_unsupported_platform(self, mock_platform: Mock) -> None:
         """Test backend creation with unsupported platform."""
         mock_platform.return_value = "UnsupportedOS"
@@ -274,7 +274,7 @@ class TestStreamingFactory:
         ):
             StreamingFactory.create_backend("test", 100, 200)
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_create_backend_unavailable(self, mock_platform: Mock) -> None:
         """Test backend creation when backend is unavailable."""
         mock_platform.return_value = "TestOS"
@@ -310,14 +310,14 @@ class TestStreamingFactory:
         finally:
             StreamingFactory._backends = original_backends
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_get_current_platform(self, mock_platform: Mock) -> None:
         """Test getting current platform."""
         mock_platform.return_value = "TestOS"
         platform_name = StreamingFactory.get_current_platform()
         assert platform_name == "TestOS"
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_is_platform_supported_true(self, mock_platform: Mock) -> None:
         """Test platform support check (supported)."""
         mock_platform.return_value = "TestOS"
@@ -332,7 +332,7 @@ class TestStreamingFactory:
         finally:
             StreamingFactory._backends = original_backends
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform.system")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform.system")
     def test_is_platform_supported_false(self, mock_platform: Mock) -> None:
         """Test platform support check (not supported)."""
         mock_platform.return_value = "UnsupportedOS"
@@ -373,7 +373,7 @@ class TestStreamingFactory:
         formats = StreamingFactory.list_supported_formats("UnsupportedOS")
         assert formats == []
 
-    @patch("virtual_gpu_lut_box.streaming.factory.platform")
+    @patch("virtual_gpu_lut_box.gpu_texture_stream.factory.platform")
     def test_get_platform_info(self, mock_platform: Mock) -> None:
         """Test getting platform information."""
         mock_platform.system.return_value = "TestOS"
