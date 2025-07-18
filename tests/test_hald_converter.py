@@ -34,17 +34,19 @@ class TestHaldConverter:
         lut = np.random.rand(5, 5, 5, 3).astype(np.float32)
         hald = converter.lut_to_hald(lut)
 
-        assert hald.shape == (5, 25, 3)  # height=5, width=5*5=25
+        assert hald.shape == (5, 25, 4)  # height=5, width=5*5=25, RGBA output
         assert hald.dtype == np.float32
 
-    def test_lut_to_hald_rgba_shape(self) -> None:
-        """Test LUT to Hald conversion with RGBA."""
+    def test_lut_to_hald_rgba_input_rejected(self) -> None:
+        """Test LUT to Hald conversion rejects RGBA input."""
         converter = HaldConverter(5)
         lut = np.random.rand(5, 5, 5, 4).astype(np.float32)
-        hald = converter.lut_to_hald(lut)
 
-        assert hald.shape == (5, 25, 4)  # height=5, width=5*5=25, 4 channels
-        assert hald.dtype == np.float32
+        # Should raise ValueError for RGBA input
+        with pytest.raises(
+            ValueError, match="LUT must have 3 channels \\(RGB\\), got 4"
+        ):
+            converter.lut_to_hald(lut)
 
     def test_lut_to_hald_invalid_shape(self) -> None:
         """Test LUT to Hald conversion with invalid shape."""
@@ -67,7 +69,9 @@ class TestHaldConverter:
         converter = HaldConverter(5)
         lut = np.random.rand(5, 5, 5, 2).astype(np.float32)  # Only 2 channels
 
-        with pytest.raises(ValueError, match="LUT must have 3 or 4 channels"):
+        with pytest.raises(
+            ValueError, match="LUT must have 3 channels \\(RGB\\), got 2"
+        ):
             converter.lut_to_hald(lut)
 
     def test_lut_to_hald_identity_conversion(self) -> None:
@@ -87,7 +91,7 @@ class TestHaldConverter:
         hald = converter.lut_to_hald(original_lut)
 
         # Check dimensions
-        assert hald.shape == (3, 9, 3)  # 3 * 3 = 9
+        assert hald.shape == (3, 9, 4)  # 3 * 3 = 9, RGBA output
         assert hald.dtype == np.float32
 
     def test_33x33x33_lut_conversion(self) -> None:
@@ -107,7 +111,7 @@ class TestHaldConverter:
         hald = converter.lut_to_hald(lut)
 
         # Check dimensions
-        assert hald.shape == (33, 1089, 3)  # 33 * 33 = 1089
+        assert hald.shape == (33, 1089, 4)  # 33 * 33 = 1089, RGBA output
         assert hald.dtype == np.float32
 
     def test_lut_to_hald_preserves_precision(self) -> None:
@@ -122,10 +126,10 @@ class TestHaldConverter:
 
         hald = converter.lut_to_hald(lut)
 
-        # Check specific values are preserved
-        assert np.allclose(hald[0, 0, :], [0.1, 0.2, 0.3])
-        assert np.allclose(hald[1, 5, :], [0.4, 0.5, 0.6])  # slice 1, position 1
-        assert np.allclose(hald[2, 10, :], [0.7, 0.8, 0.9])  # slice 2, position 2
+        # Check specific values are preserved (RGB + alpha=1.0)
+        assert np.allclose(hald[0, 0, :], [0.1, 0.2, 0.3, 1.0])
+        assert np.allclose(hald[1, 5, :], [0.4, 0.5, 0.6, 1.0])  # slice 1, position 1
+        assert np.allclose(hald[2, 10, :], [0.7, 0.8, 0.9, 1.0])  # slice 2, position 2
 
     def test_lut_to_hald_dtype_preservation(self) -> None:
         """Test that conversion preserves data type."""

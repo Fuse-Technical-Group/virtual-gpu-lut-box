@@ -129,20 +129,11 @@ class ProtocolHandler:
         # Reshape to (size^3, 4) for RGBA
         rgba_data = float_array.reshape(-1, 4)
 
-        # Preserve original channel count - check if alpha channel contains meaningful data
-        # If all alpha values are 1.0, we can treat this as RGB data
-        alpha_channel = rgba_data[:, 3]
-        has_meaningful_alpha = not np.allclose(alpha_channel, 1.0, rtol=1e-6)
-
-        if has_meaningful_alpha:
-            # Keep all 4 channels (RGBA)
-            lut_3d = rgba_data.reshape(lut_size, lut_size, lut_size, 4)
-            logger.debug("Preserving RGBA channels (alpha contains data)")
-        else:
-            # Use only RGB channels for efficiency
-            rgb_data = rgba_data[:, :3]
-            lut_3d = rgb_data.reshape(lut_size, lut_size, lut_size, 3)
-            logger.debug("Using RGB channels only (alpha is uniform 1.0)")
+        # For color grading, 3D LUTs are always RGB-only
+        # Extract only the RGB channels (ignore alpha)
+        rgb_data = rgba_data[:, :3]
+        lut_3d = rgb_data.reshape(lut_size, lut_size, lut_size, 3)
+        logger.debug("Using RGB channels only (3D LUTs are RGB-only for color grading)")
 
         # Preserve exact float32 precision - do NOT clip or convert
         # HDR and creative LUTs may have values outside [0,1] range

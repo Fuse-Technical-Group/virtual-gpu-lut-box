@@ -106,10 +106,10 @@ class StreamingBackend(ABC):
                 f"Dimension mismatch: expected {self.height}x{self.width}, got {height}x{width}"
             )
 
-        # Check channel count (RGB or RGBA)
-        if channels not in [3, 4]:
+        # Check channel count - expect RGBA from HaldConverter (RGB LUT data padded to RGBA)
+        if channels != 4:
             raise TextureFormatError(
-                f"Unsupported channel count: {channels}. Expected 3 (RGB) or 4 (RGBA)"
+                f"Unsupported channel count: {channels}. Expected 4 (RGBA) from HaldConverter"
             )
 
         # Check data type - enforce float32 only for precision preservation
@@ -142,7 +142,7 @@ class StreamingBackend(ABC):
         """Convert texture data to target format.
 
         Args:
-            texture_data: Source texture data
+            texture_data: Source texture data (RGBA from HaldConverter)
             target_format: Target format ('rgb', 'rgba', 'bgr', 'bgra')
 
         Returns:
@@ -151,7 +151,11 @@ class StreamingBackend(ABC):
         if not self.validate_texture_data(texture_data):
             raise ValueError("Invalid texture data")
 
-        height, width, channels = texture_data.shape
+        _, _, channels = texture_data.shape
+
+        # Input should always be RGBA (4 channels) from HaldConverter
+        if channels != 4:
+            raise ValueError(f"Expected RGBA input (4 channels), got {channels}")
 
         # Keep data in original format for processing to preserve precision
         if texture_data.dtype == np.uint8:
@@ -164,36 +168,17 @@ class StreamingBackend(ABC):
         target_format = target_format.lower()
 
         if target_format == "rgb":
-            if channels == 4:
-                # Remove alpha channel
-                data = data[:, :, :3]
-            elif channels == 3:
-                # Already RGB
-                pass
+            # Remove alpha channel
+            data = data[:, :, :3]
         elif target_format == "rgba":
-            if channels == 3:
-                # Add alpha channel
-                alpha = np.ones((height, width, 1), dtype=data.dtype)
-                data = np.concatenate([data, alpha], axis=2)
-            elif channels == 4:
-                # Already RGBA
-                pass
+            # Already RGBA, no conversion needed
+            pass
         elif target_format == "bgr":
-            if channels == 4:
-                # Remove alpha and swap R/B
-                data = data[:, :, [2, 1, 0]]
-            elif channels == 3:
-                # Swap R/B channels
-                data = data[:, :, [2, 1, 0]]
+            # Remove alpha and swap R/B channels
+            data = data[:, :, [2, 1, 0]]
         elif target_format == "bgra":
-            if channels == 3:
-                # Swap R/B and add alpha
-                bgr = data[:, :, [2, 1, 0]]
-                alpha = np.ones((height, width, 1), dtype=data.dtype)
-                data = np.concatenate([bgr, alpha], axis=2)
-            elif channels == 4:
-                # Swap R/B channels
-                data = data[:, :, [2, 1, 0, 3]]
+            # Swap R/B channels, keep alpha
+            data = data[:, :, [2, 1, 0, 3]]
         else:
             raise ValueError(f"Unsupported format: {target_format}")
 

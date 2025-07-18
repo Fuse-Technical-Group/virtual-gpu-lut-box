@@ -29,10 +29,10 @@ class HaldConverter:
         - Each slice represents a different blue channel value
 
         Args:
-            lut: 3D LUT array with shape (size, size, size, 3) or (size, size, size, 4)
+            lut: 3D LUT array with shape (size, size, size, 3) - RGB only
 
         Returns:
-            2D Hald image array with shape (height, width, channels)
+            2D Hald image array with shape (height, width, 4) - RGBA with alpha=1.0
         """
         # Validate LUT dimensions
         if len(lut.shape) != 4:
@@ -45,23 +45,26 @@ class HaldConverter:
             )
 
         channels = lut.shape[3]
-        if channels not in [3, 4]:
-            raise ValueError(f"LUT must have 3 or 4 channels, got {channels}")
+        if channels != 3:
+            raise ValueError(f"LUT must have 3 channels (RGB), got {channels}")
 
-        # Initialize Hald image with same channel count and data type
-        hald = np.zeros((self.hald_height, self.hald_width, channels), dtype=lut.dtype)
+        # Initialize Hald image with RGBA format (always 4 channels)
+        hald = np.zeros((self.hald_height, self.hald_width, 4), dtype=lut.dtype)
 
         # Convert each blue slice to a horizontal strip
         for b in range(self.lut_size):
             # Extract the slice at blue index b
-            slice_data = lut[:, :, b, :]  # Shape: (size, size, channels)
+            slice_data = lut[:, :, b, :]  # Shape: (size, size, 3) - RGB
 
             # Calculate position in Hald image
             start_x = b * self.lut_size
             end_x = start_x + self.lut_size
 
-            # Place slice in Hald image
+            # Place RGB data in Hald image
             # Note: LUT indexing is [R, G, B] but image indexing is [Y, X]
-            hald[:, start_x:end_x, :] = slice_data
+            hald[:, start_x:end_x, :3] = slice_data
+
+            # Set alpha channel to 1.0 (fully opaque)
+            hald[:, start_x:end_x, 3] = 1.0
 
         return hald

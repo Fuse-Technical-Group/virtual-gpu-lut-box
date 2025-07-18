@@ -141,8 +141,8 @@ class TestProtocolHandler:
             lut_size,
             lut_size,
             lut_size,
-            4,
-        )  # RGBA (alpha is not uniform)
+            3,
+        )  # RGB (3D LUTs are RGB-only for color grading)
         assert metadata["channel"] == "main"
         assert metadata["lutSize"] == lut_size
 
@@ -181,19 +181,19 @@ class TestProtocolHandler:
         assert result.shape == (lut_size, lut_size, lut_size, 3)
         assert result.dtype == np.float32
 
-    def test_convert_lut_data_valid_rgba(self) -> None:
-        """Test converting valid LUT data (RGBA)."""
+    def test_convert_lut_data_valid_rgba_ignored(self) -> None:
+        """Test converting valid LUT data (RGBA input, but alpha is ignored)."""
         handler = ProtocolHandler()
 
-        # Create 4x4x4 LUT with meaningful alpha
+        # Create 4x4x4 LUT with meaningful alpha (but it will be ignored)
         lut_size = 4
         rgba_data = np.random.rand(lut_size**3, 4).astype(np.float32)
-        rgba_data[:, 3] = np.random.rand(lut_size**3)  # Random alpha values
+        rgba_data[:, 3] = np.random.rand(lut_size**3)  # Random alpha values (ignored)
         lut_bytes = rgba_data.tobytes()
 
         result = handler._convert_lut_data(lut_bytes)
 
-        assert result.shape == (lut_size, lut_size, lut_size, 4)
+        assert result.shape == (lut_size, lut_size, lut_size, 3)  # RGB only
         assert result.dtype == np.float32
 
     def test_convert_lut_data_invalid_size(self) -> None:

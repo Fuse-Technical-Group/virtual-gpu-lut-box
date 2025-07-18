@@ -59,10 +59,10 @@ class TestStreamingBackend:
         assert backend.height == 200
         assert backend.initialized is False
 
-    def test_validate_texture_data_valid_rgb(self) -> None:
-        """Test texture data validation with valid RGB data."""
+    def test_validate_texture_data_valid_rgba_input(self) -> None:
+        """Test texture data validation with valid RGBA data from HaldConverter."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
 
         assert backend.validate_texture_data(texture_data) is True
 
@@ -74,9 +74,9 @@ class TestStreamingBackend:
         assert backend.validate_texture_data(texture_data) is True
 
     def test_validate_texture_data_valid_float32(self) -> None:
-        """Test texture data validation with valid float32 data."""
+        """Test texture data validation with valid float32 RGBA data."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
 
         assert backend.validate_texture_data(texture_data) is True
 
@@ -107,7 +107,7 @@ class TestStreamingBackend:
     def test_validate_texture_data_wrong_dtype(self) -> None:
         """Test texture data validation with wrong data type."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.int32)
+        texture_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.int32)
 
         with pytest.raises(TextureFormatError, match="Unsupported data type"):
             backend.validate_texture_data(texture_data)
@@ -115,7 +115,7 @@ class TestStreamingBackend:
     def test_validate_texture_data_invalid_range_uint8(self) -> None:
         """Test texture data validation with uint8 data (unsupported)."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.uint8)
+        texture_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.uint8)
 
         with pytest.raises(TextureFormatError, match="Unsupported data type"):
             backend.validate_texture_data(texture_data)
@@ -123,21 +123,21 @@ class TestStreamingBackend:
     def test_validate_texture_data_invalid_range_float32(self) -> None:
         """Test texture data validation with invalid float32 range."""
         backend = MockBackend("test", 10, 20)
-        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
         texture_data[0, 0, 0] = np.nan  # Invalid value
 
         with pytest.raises(TextureFormatError, match="non-finite values"):
             backend.validate_texture_data(texture_data)
 
-    def test_convert_texture_format_rgb_to_rgba(self) -> None:
-        """Test texture format conversion from RGB to RGBA."""
+    def test_convert_texture_format_rgba_to_rgba(self) -> None:
+        """Test texture format conversion from RGBA to RGBA (no-op)."""
         backend = MockBackend("test", 10, 20)
-        rgb_data = np.random.rand(20, 10, 3).astype(np.float32)
+        rgba_data = np.random.rand(20, 10, 4).astype(np.float32)
 
-        rgba_data = backend.convert_texture_format(rgb_data, "rgba")
+        result_data = backend.convert_texture_format(rgba_data, "rgba")
 
-        assert rgba_data.shape == (20, 10, 4)
-        assert np.all(rgba_data[:, :, 3] == 1.0)  # Alpha should be 1.0
+        assert result_data.shape == (20, 10, 4)
+        assert np.allclose(result_data, rgba_data)
 
     def test_convert_texture_format_rgba_to_rgb(self) -> None:
         """Test texture format conversion from RGBA to RGB."""
@@ -148,22 +148,22 @@ class TestStreamingBackend:
 
         assert rgb_data.shape == (20, 10, 3)
 
-    def test_convert_texture_format_rgb_to_bgr(self) -> None:
-        """Test texture format conversion from RGB to BGR."""
+    def test_convert_texture_format_rgba_to_bgr(self) -> None:
+        """Test texture format conversion from RGBA to BGR."""
         backend = MockBackend("test", 10, 20)
-        rgb_data = np.random.rand(20, 10, 3).astype(np.float32)
+        rgba_data = np.random.rand(20, 10, 4).astype(np.float32)
 
-        bgr_data = backend.convert_texture_format(rgb_data, "bgr")
+        bgr_data = backend.convert_texture_format(rgba_data, "bgr")
 
         assert bgr_data.shape == (20, 10, 3)
         # Check that R and B channels are swapped
-        assert np.allclose(rgb_data[:, :, 0], bgr_data[:, :, 2])
-        assert np.allclose(rgb_data[:, :, 2], bgr_data[:, :, 0])
+        assert np.allclose(rgba_data[:, :, 0], bgr_data[:, :, 2])
+        assert np.allclose(rgba_data[:, :, 2], bgr_data[:, :, 0])
 
     def test_convert_texture_format_uint8_to_float32(self) -> None:
         """Test texture format conversion from uint8 to float32."""
         backend = MockBackend("test", 10, 20)
-        uint8_data = np.random.randint(0, 256, (20, 10, 3), dtype=np.uint8)
+        uint8_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.uint8)
 
         with pytest.raises(TextureFormatError, match="Unsupported data type"):
             backend.convert_texture_format(uint8_data, "rgb")
@@ -171,10 +171,10 @@ class TestStreamingBackend:
     def test_convert_texture_format_invalid_format(self) -> None:
         """Test texture format conversion with invalid format."""
         backend = MockBackend("test", 10, 20)
-        rgb_data = np.random.rand(20, 10, 3).astype(np.float32)
+        rgba_data = np.random.rand(20, 10, 4).astype(np.float32)
 
         with pytest.raises(ValueError, match="Unsupported format"):
-            backend.convert_texture_format(rgb_data, "invalid")
+            backend.convert_texture_format(rgba_data, "invalid")
 
     def test_context_manager_success(self) -> None:
         """Test context manager with successful initialization."""
@@ -200,7 +200,7 @@ class TestStreamingBackend:
         backend = MockBackend("test", 10, 20)
         backend.initialize()
 
-        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
         result = backend.send_texture(texture_data)
 
         assert result is None  # send_texture returns None on success
@@ -209,7 +209,7 @@ class TestStreamingBackend:
         """Test texture sending when not initialized."""
         backend = MockBackend("test", 10, 20)
 
-        texture_data = np.random.rand(20, 10, 3).astype(np.float32)
+        texture_data = np.random.rand(20, 10, 4).astype(np.float32)
 
         with pytest.raises(RuntimeError, match="not initialized"):
             backend.send_texture(texture_data)
@@ -219,7 +219,7 @@ class TestStreamingBackend:
         backend = MockBackend("test", 10, 20)
         backend.initialize()
 
-        texture_data = np.random.rand(15, 10, 3).astype(np.float32)  # Wrong height
+        texture_data = np.random.rand(15, 10, 4).astype(np.float32)  # Wrong height
 
         with pytest.raises(TextureFormatError, match="Dimension mismatch"):
             backend.send_texture(texture_data)

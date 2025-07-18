@@ -11,7 +11,7 @@ A cross-platform Python package for streaming color correction LUTs from OpenGra
 - **Cross-Platform Streaming**: Spout on Windows, Syphon on macOS with Metal integration
 - **Channel-Aware Streaming**: Automatic stream naming based on OpenGradeIO channels/instances
 - **HDR/Creative LUT Support**: Values outside [0,1] range preserved exactly
-- **Professional Workflow**: Built for high-end color grading pipelines
+- **High-Performance Architecture**: Multi-process server with multi-threaded client handling for concurrent connections
 
 ## Installation
 
