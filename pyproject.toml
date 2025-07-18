@@ -60,6 +60,7 @@ Documentation = "https://github.com/example/virtual-gpu-lut-box#readme"
 
 [project.scripts]
 virtual-gpu-lut-box = "virtual_gpu_lut_box.cli:main"
+vglb = "virtual_gpu_lut_box.cli:main"
 
 [tool.hatch.version]
 path = "src/virtual_gpu_lut_box/__init__.py"
@@ -73,7 +74,7 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/virtual_gpu_lut_box"]
+packages = ["src/virtual_gpu_lut_box", "src/vglb.py"]
 
 [tool.ruff]
 line-length = 88

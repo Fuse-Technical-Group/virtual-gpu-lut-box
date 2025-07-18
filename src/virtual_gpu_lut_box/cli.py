@@ -3,18 +3,11 @@
 from __future__ import annotations
 
 import sys
-import time
-from typing import TYPE_CHECKING, Any
 
 import click
 
-if TYPE_CHECKING:
-    import numpy as np
-else:
-    pass
-
 from .gpu_texture_stream.factory import PlatformNotSupportedError, StreamingFactory
-from .network import OpenGradeIOLUTStreamer, OpenGradeIOServer
+from .server import get_platform_info, start_server
 
 
 @click.command()
@@ -43,34 +36,27 @@ def main(
         show_system_info()
         return
 
-    start_server(host, port, stream_name, verbose)
+    start_server_cli(host, port, stream_name, verbose)
 
 
 def show_system_info() -> None:
     """Show system and platform information."""
     try:
-        # Show platform info
-        platform_info = StreamingFactory.get_platform_info()
+        platform_info = get_platform_info()
+        
+        # Show basic platform info
         click.echo("System Information:")
         for key, value in platform_info.items():
-            click.echo(f"  {key}: {value}")
+            if key not in ["current_platform", "available_backends", "platform_supported", "supported_formats"]:
+                click.echo(f"  {key}: {value}")
 
-        # Show current platform
-        current_platform = StreamingFactory.get_current_platform()
-        click.echo(f"\nCurrent platform: {current_platform}")
+        # Show streaming-specific info
+        click.echo(f"\nCurrent platform: {platform_info['current_platform']}")
+        click.echo(f"Available backends: {', '.join(platform_info['available_backends'])}")
+        click.echo(f"Platform supported: {platform_info['platform_supported']}")
 
-        # Show supported platforms
-        available_backends = StreamingFactory.get_available_backends()
-        click.echo(f"Available backends: {', '.join(available_backends)}")
-
-        # Show platform support
-        is_supported = StreamingFactory.is_platform_supported()
-        click.echo(f"Platform supported: {is_supported}")
-
-        # Show supported formats
-        if is_supported:
-            formats = StreamingFactory.list_supported_formats()
-            click.echo(f"Supported formats: {', '.join(formats)}")
+        if platform_info['platform_supported']:
+            click.echo(f"Supported formats: {', '.join(platform_info['supported_formats'])}")
 
         # Show streaming info
         click.echo("\nStreaming Information:")
@@ -84,72 +70,21 @@ def show_system_info() -> None:
         sys.exit(1)
 
 
-def start_server(
+def start_server_cli(
     host: str,
     port: int,
     stream_name: str,
     verbose: bool,
 ) -> None:
-    """Start OpenGradeIO virtual LUT box server."""
-    import logging
-
-    # Configure logging
-    log_level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
+    """Start OpenGradeIO virtual LUT box server via CLI."""
     try:
-        click.echo(f"Starting OpenGradeIO virtual LUT box server on {host}:{port}")
-        click.echo(f"Base stream name: {stream_name}")
-        click.echo("Channel streams will be named: vglb-lut-{channel}")
-
-        # Create LUT streamer (will initialize lazily when first LUT is received)
-        streamer = OpenGradeIOLUTStreamer(stream_name=stream_name)
-
-        # Create LUT callback wrapper
-        def lut_callback(
-            lut_data: np.ndarray[Any, Any], channel_name: str | None = None
-        ) -> None:
-            try:
-                streamer.process_lut(lut_data, channel_name)
-                # Success - no need to log unless verbose
-                if verbose:
-                    channel_info = (
-                        f" for channel '{channel_name}'" if channel_name else ""
-                    )
-                    click.echo(
-                        f"Successfully processed {lut_data.shape[0]}³ LUT{channel_info}"
-                    )
-            except ValueError as e:
-                click.echo(f"Invalid LUT data: {e}", err=True)
-            except RuntimeError as e:
-                click.echo(f"Streaming error: {e}", err=True)
-            except Exception as e:
-                click.echo(f"Unexpected error processing LUT: {e}", err=True)
-
-        # Create and configure server
-        server = OpenGradeIOServer(
+        start_server(
             host=host,
             port=port,
-            lut_callback=lut_callback,
+            stream_name=stream_name,
+            verbose=verbose,
+            blocking=True,
         )
-
-        # Start server
-        server.start()
-
-        try:
-            click.echo("OpenGradeIO server running. Press Ctrl+C to stop.")
-            while server.is_running:
-                time.sleep(0.1)
-        except KeyboardInterrupt:
-            click.echo("\nStopping server...")
-        finally:
-            server.stop()
-            streamer.stop_streaming()
-
-        click.echo("Server stopped")
-
     except PlatformNotSupportedError as e:
         click.echo(f"Platform error: {e}", err=True)
         click.echo("GPU texture streaming not supported on this platform")

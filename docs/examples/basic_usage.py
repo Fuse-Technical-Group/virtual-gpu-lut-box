@@ -3,7 +3,9 @@
 
 import numpy as np
 
-from virtual_gpu_lut_box import HaldConverter, StreamingFactory
+import vglb
+from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
+from virtual_gpu_lut_box.gpu_texture_stream.factory import StreamingFactory
 
 
 def example_hald_conversion():
@@ -44,22 +46,22 @@ def example_streaming_setup():
     """Example: Set up streaming backend and stream LUT."""
     print("\n=== Streaming Setup Examples ===")
 
-    # Check platform support
-    platform_info = StreamingFactory.get_platform_info()
+    # Check platform support using vglb
+    platform_info = vglb.get_platform_info()
     print(f"Platform: {platform_info['system']}")
     print(f"Python version: {platform_info['python_version']}")
 
     # Check available backends
-    backends = StreamingFactory.get_available_backends()
+    backends = platform_info['available_backends']
     print(f"Available backends: {backends}")
 
     # Check if current platform is supported
-    is_supported = StreamingFactory.is_platform_supported()
+    is_supported = platform_info['platform_supported']
     print(f"Platform supported: {is_supported}")
 
     if is_supported:
         # Get supported formats
-        formats = StreamingFactory.list_supported_formats()
+        formats = platform_info['supported_formats']
         print(f"Supported formats: {formats}")
 
         try:
@@ -132,11 +134,21 @@ def example_opengradeio_integration():
     print("\n=== OpenGradeIO Integration Example ===")
     
     # This example shows how to use the OpenGradeIO network server
-    # In practice, you would run this as a CLI command:
-    # virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
-    
-    print("To use OpenGradeIO integration:")
-    print("1. Start the server: virtual-gpu-lut-box")
+    print("Simple usage with vglb:")
+    print("  import vglb")
+    print("  vglb.start_server()  # Starts server with default settings")
+    print()
+    print("Advanced usage:")
+    print("  import vglb")
+    print("  vglb.start_server(host='0.0.0.0', port=8089, verbose=True)")
+    print()
+    print("CLI usage:")
+    print("  virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose")
+    print("  # or")
+    print("  vglb --host 127.0.0.1 --port 8089 --verbose")
+    print()
+    print("Configuration:")
+    print("1. Start the server using any method above")
     print("2. Configure OpenGradeIO to connect to 127.0.0.1:8089")
     print("3. LUTs will be automatically streamed to GPU via Syphon/Spout")
     print("4. Stream names will be: vglb-lut-{channel}")
