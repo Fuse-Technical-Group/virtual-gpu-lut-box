@@ -11,8 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        os: [windows-latest, macos-latest]
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v4
@@ -21,6 +21,11 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Set up Node.js for cspell
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
 
     - name: Cache pip dependencies
       uses: actions/cache@v3
@@ -35,30 +40,46 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
-    - name: Install platform-specific dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        pip install -e ".[spout]"
-      continue-on-error: true
-
-    - name: Install platform-specific dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        pip install -e ".[syphon]"
-      continue-on-error: true
-
     - name: Lint with ruff
       run: |
         ruff check src tests
         ruff format --check src tests
 
-    - name: Type check with mypy
+    - name: Type check with pyright
       run: |
-        mypy src/virtual_gpu_lut_box
+        pyright src/virtual_gpu_lut_box
+
+    - name: Spell check with cspell
+      run: |
+        npx cspell --config .cspell.json "**/*.{py,md,yml,yaml,json,txt,rst}"
+
+    - name: Check for banned patterns
+      run: |
+        python -c "
+        import subprocess
+        import sys
+
+        # Check for contextlib.suppress(Exception) patterns
+        result = subprocess.run(['grep', '-r', 'contextlib.suppress(Exception)', 'src/'],
+                               capture_output=True, text=True)
+        if result.stdout.strip():
+            print('Found banned contextlib.suppress(Exception) patterns:')
+            print(result.stdout)
+            sys.exit(1)
+
+        result = subprocess.run(['grep', '-r', 'contextlib.suppress.*Exception', 'src/'],
+                               capture_output=True, text=True)
+        if result.stdout.strip():
+            print('Found potential contextlib.suppress with broad exceptions:')
+            print(result.stdout)
+            sys.exit(1)
+
+        print('No banned patterns found')
+        "
 
     - name: Test with pytest
       run: |
-        pytest --cov=virtual_gpu_lut_box --cov-report=xml --cov-report=term-missing
+        pytest --cov=virtual_gpu_lut_box --cov-report=xml --cov-report=term-missing --cov-fail-under=50
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -68,7 +89,7 @@ jobs:
         name: codecov-umbrella
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: test
 
     steps:
@@ -98,8 +119,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.12']
+        os: [windows-latest, macos-latest]
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v4
@@ -127,10 +148,10 @@ jobs:
 
     - name: Test package import
       run: |
-        python -c "from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory; print('Import successful')"
+        python -c "from virtual_gpu_lut_box import HaldConverter, StreamingFactory; print('Import successful')"
 
   security:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -155,7 +176,7 @@ jobs:
         bandit -r src/virtual_gpu_lut_box
 
   docs:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -174,14 +195,14 @@ jobs:
       run: |
         mkdir -p docs
         python -c "
-        from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory
+        from virtual_gpu_lut_box import HaldConverter, StreamingFactory
         import inspect
 
         # Generate basic API documentation
         with open('docs/api.md', 'w') as f:
             f.write('# API Documentation\n\n')
 
-            classes = [LUTGenerator, HaldConverter, StreamingFactory]
+            classes = [HaldConverter, StreamingFactory]
             for cls in classes:
                 f.write(f'## {cls.__name__}\n\n')
                 f.write(f'{cls.__doc__ or \"No documentation available.\"}\n\n')
