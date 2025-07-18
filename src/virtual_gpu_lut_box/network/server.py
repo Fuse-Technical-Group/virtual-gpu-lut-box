@@ -198,11 +198,10 @@ class OpenGradeIOServer:
 
             if command == "setLUT":
                 return self._handle_set_lut(arguments, top_level_metadata)
-            elif command == "setCDL":
+            if command == "setCDL":
                 return self._handle_set_cdl(arguments)
-            else:
-                logger.warning("Unhandled command: %s", command)
-                return False
+            logger.warning("Unhandled command: %s", command)
+            return False
 
         except Exception as e:
             logger.error("Error processing message: %s", e)

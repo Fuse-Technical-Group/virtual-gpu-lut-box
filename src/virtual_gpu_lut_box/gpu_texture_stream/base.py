@@ -31,27 +31,25 @@ class StreamingBackend(ABC):
         return self._initialized
 
     @abstractmethod
-    def initialize(self) -> bool:
+    def initialize(self) -> None:
         """Initialize the streaming backend.
 
-        Returns:
-            True if initialization successful, False otherwise
+        Raises:
+            InitializationError: If initialization fails
         """
         pass
 
     @abstractmethod
-    def send_texture(self, texture_data: np.ndarray) -> bool:
+    def send_texture(self, texture_data: np.ndarray) -> None:
         """Send texture data to the stream.
 
         Args:
             texture_data: Texture data as numpy array
 
-        Returns:
-            True if send successful, False otherwise
-
         Raises:
             RuntimeError: If backend is not initialized
             TextureFormatError: If texture data is invalid
+            StreamingError: If sending fails
         """
         pass
 
@@ -114,35 +112,27 @@ class StreamingBackend(ABC):
                 f"Unsupported channel count: {channels}. Expected 3 (RGB) or 4 (RGBA)"
             )
 
-        # Check data type
-        if texture_data.dtype not in [np.uint8, np.float32]:
+        # Check data type - enforce float32 only for precision preservation
+        if texture_data.dtype != np.float32:
             raise TextureFormatError(
-                f"Unsupported data type: {texture_data.dtype}. Expected uint8 or float32"
+                f"Unsupported data type: {texture_data.dtype}. Only float32 is supported to preserve precision."
             )
 
-        # Check value range
-        if texture_data.dtype == np.uint8:
-            if np.any(texture_data < 0) or np.any(texture_data > 255):
-                raise TextureFormatError(
-                    f"uint8 values out of range [0, 255]: [{texture_data.min()}, {texture_data.max()}]"
-                )
-        elif texture_data.dtype == np.float32:  # noqa: SIM102
-            # For LUT data, values can be outside [0,1] range (e.g., for HDR or creative looks)
-            # Just ensure they're reasonable finite values
-            if np.any(~np.isfinite(texture_data)):
-                raise TextureFormatError(
-                    f"float32 contains non-finite values (NaN/Inf): [{texture_data.min()}, {texture_data.max()}]"
-                )
-            # Log if values are outside typical [0,1] range for debugging
-            if np.any(texture_data < 0) or np.any(texture_data > 1):
-                import logging
+        # Check value range for float32
+        # For LUT data, values can be outside [0,1] range (e.g., for HDR or creative looks)
+        # Just ensure they're reasonable finite values
+        if np.any(~np.isfinite(texture_data)):
+            raise TextureFormatError("float32 contains non-finite values (NaN/Inf)")
+        # Log if values are outside typical [0,1] range for debugging
+        if np.any(texture_data < 0) or np.any(texture_data > 1):
+            import logging
 
-                logger = logging.getLogger(__name__)
-                logger.debug(
-                    "LUT contains values outside [0,1] range: [%.3f, %.3f] - this is normal for HDR/creative LUTs",
-                    texture_data.min(),
-                    texture_data.max(),
-                )
+            logger = logging.getLogger(__name__)
+            logger.debug(
+                "LUT contains values outside [0,1] range: [%.3f, %.3f] - this is normal for HDR/creative LUTs",
+                texture_data.min(),
+                texture_data.max(),
+            )
 
         return True
 
@@ -209,7 +199,7 @@ class StreamingBackend(ABC):
 
         return data
 
-    def send_lut_texture(self, hald_image: np.ndarray) -> bool:
+    def send_lut_texture(self, hald_image: np.ndarray) -> None:
         """Send LUT texture data.
 
         Default implementation just calls send_texture.
@@ -218,24 +208,21 @@ class StreamingBackend(ABC):
         Args:
             hald_image: Hald image data
 
-        Returns:
-            True if successful, False otherwise
-
         Raises:
             RuntimeError: If backend is not initialized
             TextureFormatError: If texture data is invalid
+            StreamingError: If sending fails
         """
         if not self._initialized:
             raise RuntimeError(
                 f"Backend '{self.name}' is not initialized. Call initialize() first."
             )
 
-        return self.send_texture(hald_image)
+        self.send_texture(hald_image)
 
     def __enter__(self) -> StreamingBackend:
         """Context manager entry."""
-        if not self.initialize():
-            raise RuntimeError("Failed to initialize streaming backend")
+        self.initialize()
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

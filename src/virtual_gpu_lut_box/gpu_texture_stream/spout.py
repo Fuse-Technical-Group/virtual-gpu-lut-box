@@ -8,7 +8,12 @@ from typing import Any
 
 import numpy as np
 
-from .base import InitializationError, StreamingBackend, TextureFormatError
+from .base import (
+    InitializationError,
+    StreamingBackend,
+    StreamingError,
+    TextureFormatError,
+)
 
 
 class SpoutBackend(StreamingBackend):
@@ -39,17 +44,19 @@ class SpoutBackend(StreamingBackend):
         # Try to import SpoutGL
         return importlib.util.find_spec("SpoutGL") is not None
 
-    def initialize(self) -> bool:
+    def initialize(self) -> None:
         """Initialize the SpoutGL sender.
 
-        Returns:
-            True if initialization successful, False otherwise
+        Raises:
+            InitializationError: If initialization fails
         """
         if self._initialized:
-            return True
+            return
 
         if not self.is_available():
-            return False
+            raise InitializationError(
+                "SpoutGL not available: requires Windows with SpoutGL package"
+            )
 
         try:
             # Import SpoutGL modules
@@ -68,26 +75,22 @@ class SpoutBackend(StreamingBackend):
 
             if success:
                 self._initialized = True
-                return True
             else:
-                self._sender = None
-                return False
+                raise InitializationError(f"Failed to initialize SpoutGL sender '{self.name}'")
 
         except Exception as e:
             raise InitializationError(f"Failed to initialize SpoutGL: {e}") from e
 
-    def send_texture(self, texture_data: np.ndarray) -> bool:
+    def send_texture(self, texture_data: np.ndarray) -> None:
         """Send texture data via SpoutGL.
 
         Args:
             texture_data: Texture data as numpy array (height, width, 3 or 4)
 
-        Returns:
-            True if send successful, False otherwise
-
         Raises:
             RuntimeError: If backend is not initialized
             TextureFormatError: If texture data is invalid
+            StreamingError: If sending fails
         """
         if not self._initialized or self._sender is None:
             raise RuntimeError(f"Spout backend '{self.name}' is not initialized")
@@ -102,42 +105,46 @@ class SpoutBackend(StreamingBackend):
             # Send via SpoutGL
             success = self._sender.sendImage(spout_data)
 
-            return bool(success)
+            if not success:
+                raise StreamingError("SpoutGL sendImage failed")
 
-        except Exception:
-            return False
+        except Exception as e:
+            raise StreamingError(f"SpoutGL streaming error: {e}") from e
 
     def _prepare_spout_data(self, texture_data: np.ndarray) -> np.ndarray:
-        """Prepare texture data for SpoutGL.
+        """Prepare texture data for SpoutGL with full precision preservation.
 
         Args:
-            texture_data: Input texture data
+            texture_data: Input texture data (must be float32)
 
         Returns:
             Texture data formatted for SpoutGL
+
+        Raises:
+            TextureFormatError: If texture data is not float32
         """
         height, width, channels = texture_data.shape
 
-        # Preserve float32 precision when possible, otherwise convert to uint8
-        if texture_data.dtype == np.float32:
-            print("🎯 Preserving 32-bit float precision for SpoutGL")
-            data = texture_data.copy()
-            alpha_value = 1.0
-        else:
-            print("📦 Converting to 8-bit format for SpoutGL")
-            data = texture_data.astype(np.uint8)
-            alpha_value = 255
+        # Enforce float32 precision only - no conversion allowed
+        if texture_data.dtype != np.float32:
+            raise TextureFormatError(
+                f"SpoutGL backend requires float32 input, got {texture_data.dtype}. "
+                f"No format conversion is performed to preserve precision."
+            )
+
+        print("🎯 Using 32-bit float precision for SpoutGL")
+        data = texture_data.copy()
 
         # SpoutGL expects RGBA format
         if channels == 3:
-            # Add alpha channel with appropriate value type
-            alpha = np.full((height, width, 1), alpha_value, dtype=data.dtype)
+            # Add alpha channel with 1.0 values
+            alpha = np.full((height, width, 1), 1.0, dtype=np.float32)
             data = np.concatenate([data, alpha], axis=2)
         elif channels == 4:
             # Already RGBA
             pass
         else:
-            raise ValueError(f"Unsupported channel count: {channels}")
+            raise TextureFormatError(f"Unsupported channel count: {channels}")
 
         # SpoutGL expects data in specific memory layout
         # Ensure contiguous array
@@ -167,163 +174,18 @@ class SpoutBackend(StreamingBackend):
         """
         return ["rgb", "rgba", "bgr", "bgra"]
 
-    def get_spout_info(self) -> dict[str, Any]:
-        """Get SpoutGL-specific information.
 
-        Returns:
-            Dictionary with SpoutGL info
-        """
-        info = {
-            "name": self.name,
-            "width": self.width,
-            "height": self.height,
-            "initialized": self._initialized,
-            "platform": "Windows",
-            "backend": "SpoutGL",
-        }
 
-        if self._initialized and self._sender is not None:
-            try:
-                # Get additional info from SpoutGL if available
-                additional_info: dict[str, Any] = {
-                    "sender_active": True,
-                    "supported_formats": self.get_supported_formats(),
-                }
-                info.update(additional_info)
-            except Exception as e:
-                # Log the error but don't let it prevent basic info from being returned
-                print(f"Warning: Could not get extended Spout info: {e}")
-
-        return info
-
-    def set_frame_sync(self, enable: bool) -> bool:
-        """Enable or disable frame synchronization.
-
-        Args:
-            enable: True to enable frame sync, False to disable
-
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self._initialized or self._sender is None:
-            return False
-
-        try:
-            # SpoutGL frame sync methods
-            if enable:
-                return bool(self._sender.setFrameSync(True))
-            else:
-                return bool(self._sender.setFrameSync(False))
-        except Exception:
-            return False
-
-    def wait_frame_sync(self) -> bool:
-        """Wait for frame synchronization.
-
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self._initialized or self._sender is None:
-            return False
-
-        try:
-            return bool(self._sender.waitFrameSync())
-        except Exception:
-            return False
-
-    def get_adapter_info(self) -> dict[str, str]:
-        """Get graphics adapter information.
-
-        Returns:
-            Dictionary with adapter info
-        """
-        info = {}
-
-        if self._initialized and self._spout_gl is not None:
-            try:
-                # Get adapter info if available in SpoutGL
-                info.update(
-                    {
-                        "adapter_name": "Unknown",
-                        "adapter_description": "Windows Graphics Adapter",
-                    }
-                )
-            except Exception as e:
-                # Log the error but don't let it prevent basic info from being returned
-                print(f"Warning: Could not get Spout adapter info: {e}")
-
-        return info
-
-    def is_receiver_connected(self) -> bool:
-        """Check if any receivers are connected.
-
-        Returns:
-            True if receivers are connected, False otherwise
-        """
-        if not self._initialized or self._sender is None:
-            return False
-
-        try:
-            # Check if there are active receivers
-            # This might vary depending on SpoutGL version
-            return True  # Assume connected for now
-        except Exception:
-            return False
-
-    def get_frame_rate(self) -> float:
-        """Get current frame rate.
-
-        Returns:
-            Current frame rate in FPS
-        """
-        if not self._initialized:
-            return 0.0
-
-        try:
-            # Return estimated frame rate
-            return 60.0  # Default assumption
-        except Exception:
-            return 0.0
-
-    def resize(self, width: int, height: int) -> bool:
-        """Resize the SpoutGL sender.
-
-        Args:
-            width: New width
-            height: New height
-
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self._initialized or self._sender is None:
-            return False
-
-        try:
-            # Cleanup current sender
-            self.cleanup()
-
-            # Update dimensions
-            self.width = width
-            self.height = height
-
-            # Reinitialize with new dimensions
-            return self.initialize()
-
-        except Exception:
-            return False
-
-    def send_lut_texture(self, hald_image: np.ndarray) -> bool:
+    def send_lut_texture(self, hald_image: np.ndarray) -> None:
         """Send LUT texture data optimized for GPU shaders.
 
         Args:
             hald_image: Hald image data from HaldConverter
 
-        Returns:
-            True if successful, False otherwise
-
         Raises:
             RuntimeError: If backend is not initialized
             TextureFormatError: If Hald image dimensions are incorrect
+            StreamingError: If sending fails
         """
         if not self._initialized:
             raise RuntimeError(f"Spout backend '{self.name}' is not initialized")
@@ -346,4 +208,4 @@ class SpoutBackend(StreamingBackend):
             ) from e
 
         # Send texture
-        return self.send_texture(rgba_data)
+        self.send_texture(rgba_data)

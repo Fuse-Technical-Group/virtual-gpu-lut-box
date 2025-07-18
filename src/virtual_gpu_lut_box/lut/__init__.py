@@ -1,6 +1,5 @@
-"""LUT generation and conversion modules."""
+"""LUT 3D to 2D conversion module."""
 
-from .generator import LUTGenerator
 from .hald_converter import HaldConverter
 
-__all__ = ["LUTGenerator", "HaldConverter"]
+__all__ = ["HaldConverter"]

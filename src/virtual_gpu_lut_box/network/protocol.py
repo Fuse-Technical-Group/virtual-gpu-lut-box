@@ -133,14 +133,24 @@ class ProtocolHandler:
         # Reshape to (size^3, 4) for RGBA
         rgba_data = float_array.reshape(-1, 4)
 
-        # Extract RGB channels (ignore alpha)
-        rgb_data = rgba_data[:, :3]
+        # Preserve original channel count - check if alpha channel contains meaningful data
+        # If all alpha values are 1.0, we can treat this as RGB data
+        alpha_channel = rgba_data[:, 3]
+        has_meaningful_alpha = not np.allclose(alpha_channel, 1.0, rtol=1e-6)
 
-        # Reshape to 3D LUT format: (size, size, size, 3)
-        lut_3d = rgb_data.reshape(lut_size, lut_size, lut_size, 3)
+        if has_meaningful_alpha:
+            # Keep all 4 channels (RGBA)
+            lut_3d = rgba_data.reshape(lut_size, lut_size, lut_size, 4)
+            logger.info("Preserving RGBA channels (alpha contains data)")
+        else:
+            # Use only RGB channels for efficiency
+            rgb_data = rgba_data[:, :3]
+            lut_3d = rgb_data.reshape(lut_size, lut_size, lut_size, 3)
+            logger.info("Using RGB channels only (alpha is uniform 1.0)")
 
-        # Ensure data is in [0, 1] range and proper dtype
-        lut_3d = np.clip(lut_3d, 0.0, 1.0).astype(np.float32)
+        # Preserve exact float32 precision - do NOT clip or convert
+        # HDR and creative LUTs may have values outside [0,1] range
+        lut_3d = lut_3d.astype(np.float32)
 
         return lut_3d
 
@@ -158,5 +168,4 @@ class ProtocolHandler:
         """
         if success:
             return {"result": 1}
-        else:
-            return {"result": 0, "error": error or "Unknown error"}
+        return {"result": 0, "error": error or "Unknown error"}

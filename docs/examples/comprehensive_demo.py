@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from virtual_gpu_lut_box import HaldConverter, LUTGenerator, StreamingFactory
+from virtual_gpu_lut_box import HaldConverter, StreamingFactory
 
 
 def format_timestamp() -> str:
@@ -45,46 +45,48 @@ def print_error(message: str) -> None:
     print(f"[{timestamp}] ❌ {message}")
 
 
+def create_identity_lut(lut_size: int) -> np.ndarray:
+    """Create an identity LUT of given size."""
+    print_step(f"Creating {lut_size}x{lut_size}x{lut_size} identity LUT")
+    
+    lut = np.zeros((lut_size, lut_size, lut_size, 3), dtype=np.float32)
+    for r in range(lut_size):
+        for g in range(lut_size):
+            for b in range(lut_size):
+                lut[r, g, b, 0] = r / (lut_size - 1)  # R
+                lut[r, g, b, 1] = g / (lut_size - 1)  # G
+                lut[r, g, b, 2] = b / (lut_size - 1)  # B
+    
+    print_success(f"Identity LUT created with shape {lut.shape}")
+    return lut
+
+
+def apply_gamma_correction(lut: np.ndarray, gamma: float) -> np.ndarray:
+    """Apply gamma correction to LUT."""
+    print_step(f"Applying gamma correction (γ = {gamma})")
+    corrected_lut = np.power(lut, 1.0 / gamma)
+    print_success(f"Gamma correction applied, range: [{corrected_lut.min():.3f}, {corrected_lut.max():.3f}]")
+    return corrected_lut
+
+
 def example_lut_generation() -> np.ndarray:
     """Example: Generate different types of LUTs with consistent output."""
     print_section("LUT Generation Examples")
 
-    # Create LUT generator
-    print_step("Creating LUT generator (size=33)")
-    generator = LUTGenerator(size=33)
+    # Create identity LUT
+    identity_lut = create_identity_lut(33)
+    print_info(f"Identity LUT corners: {identity_lut[0, 0, 0]}, {identity_lut[32, 32, 32]}")
 
-    # 1. Identity LUT (no changes)
-    print_step("Generating identity LUT")
-    identity_lut = generator.identity_lut
-    print_info(f"Identity LUT shape: {identity_lut.shape}")
-    print_info(
-        f"Identity LUT corners: {identity_lut[0, 0, 0]}, {identity_lut[32, 32, 32]}"
-    )
-
-    # 2. Gamma correction
-    print_step("Applying gamma correction (γ=2.2)")
-    gamma_lut = generator.apply_gamma(2.2)
+    # Apply gamma correction
+    gamma_lut = apply_gamma_correction(identity_lut, 2.2)
     print_info(f"Gamma LUT midpoint: {gamma_lut[16, 16, 16]}")
 
-    # 3. Brightness and contrast
-    print_step("Applying brightness/contrast (brightness=0.1, contrast=1.2)")
-    bc_lut = generator.apply_brightness_contrast(brightness=0.1, contrast=1.2)
-    print_info(f"Brightness/Contrast LUT midpoint: {bc_lut[16, 16, 16]}")
+    # Create a LUT with brightness adjustment
+    print_step("Applying brightness adjustment (+0.1)")
+    brightness_lut = np.clip(gamma_lut + 0.1, 0.0, 1.0)
+    print_success(f"Brightness adjustment applied, range: [{brightness_lut.min():.3f}, {brightness_lut.max():.3f}]")
 
-    # 4. Hue and saturation
-    print_step("Applying hue/saturation (hue=30°, saturation=1.3)")
-    hs_lut = generator.apply_hue_saturation(hue_shift=np.pi / 6, saturation=1.3)
-    print_info(f"Hue/Saturation LUT shape: {hs_lut.shape}")
-
-    # 5. Custom LUT with all adjustments
-    print_step("Creating custom LUT with all adjustments")
-    custom_lut = generator.create_custom_lut(
-        gamma=2.2, brightness=0.05, contrast=1.1, hue_shift=np.pi / 12, saturation=1.15
-    )
-    print_info(f"Custom LUT range: [{custom_lut.min():.3f}, {custom_lut.max():.3f}]")
-    print_success("LUT generation completed")
-
-    return custom_lut
+    return brightness_lut
 
 
 def example_hald_conversion() -> np.ndarray:
@@ -92,240 +94,165 @@ def example_hald_conversion() -> np.ndarray:
     print_section("Hald Conversion Examples")
 
     # Generate a LUT
-    print_step("Generating LUT for Hald conversion")
-    generator = LUTGenerator(size=33)
-    lut = generator.create_custom_lut(gamma=2.2, brightness=0.1)
+    lut = example_lut_generation()
 
     # Create Hald converter
     print_step("Creating Hald converter")
     converter = HaldConverter(lut_size=33)
+    print_success("Hald converter created")
 
     # Convert to Hald image
     print_step("Converting LUT to Hald image format")
     hald_image = converter.lut_to_hald(lut)
-    print_info(f"Hald image dimensions: {hald_image.shape}")
+    print_success(f"Hald image created with dimensions: {hald_image.shape}")
     print_info(f"Hald image size: {hald_image.shape[1]}x{hald_image.shape[0]} pixels")
-
-    # Get shader sampling info
-    print_step("Generating shader sampling constants")
-    shader_info = converter.get_shader_sampling_info()
-    print_info("Shader sampling constants:")
-    for key, value in shader_info.items():
-        print(f"         {key}: {value}")
-
-    # Save Hald image
-    print_step("Saving Hald image to example_lut.png")
-    try:
-        converter.save_hald_image(hald_image, "example_lut.png")
-        print_success("Saved Hald image to example_lut.png")
-    except Exception as e:
-        print_error(f"Could not save image: {e}")
-
-    # Convert back to LUT (roundtrip test)
-    print_step("Testing roundtrip conversion (Hald → LUT)")
-    recovered_lut = converter.hald_to_lut(hald_image)
-    is_accurate = np.allclose(lut, recovered_lut)
-    if is_accurate:
-        print_success("Roundtrip conversion successful")
-    else:
-        print_error("Roundtrip conversion failed")
 
     return hald_image
 
 
-def example_platform_detection() -> dict[str, Any]:
-    """Example: Platform detection and backend availability."""
-    print_section("Platform Detection & Backend Availability")
+def example_streaming_setup() -> None:
+    """Example: Set up streaming backend and stream LUT with consistent output."""
+    print_section("Streaming Setup Examples")
 
-    # Get platform info
-    print_step("Detecting platform information")
+    # Check platform support
+    print_step("Checking platform support")
     platform_info = StreamingFactory.get_platform_info()
     print_info(f"Platform: {platform_info['system']}")
     print_info(f"Python version: {platform_info['python_version']}")
-    print_info(f"Machine: {platform_info['machine']}")
 
     # Check available backends
-    print_step("Checking available streaming backends")
     backends = StreamingFactory.get_available_backends()
     print_info(f"Available backends: {backends}")
 
     # Check if current platform is supported
-    print_step("Verifying platform streaming support")
     is_supported = StreamingFactory.is_platform_supported()
-    if is_supported:
-        print_success("Platform supports streaming")
-    else:
-        print_error("Platform does not support streaming")
+    print_info(f"Platform supported: {is_supported}")
 
-    # Get supported formats
     if is_supported:
-        print_step("Querying supported texture formats")
+        # Get supported formats
         formats = StreamingFactory.list_supported_formats()
         print_info(f"Supported formats: {formats}")
 
-    return {
-        "platform_info": platform_info,
-        "backends": backends,
-        "supported": is_supported,
-        "formats": formats if is_supported else [],
-    }
+        try:
+            # Create streaming backend
+            print_step("Creating streaming backend")
+            backend = StreamingFactory.create_lut_streamer()
+            print_success(f"Created backend: {backend.__class__.__name__}")
+            print_info(f"Backend dimensions: {backend.width}x{backend.height}")
+            print_info(f"Stream name: {backend.name}")
+
+            # Check if backend is available
+            if backend.is_available():
+                print_success("Backend is available for streaming")
+
+                # Generate and stream a LUT
+                print_step("Preparing LUT for streaming")
+                hald_image = example_hald_conversion()
+
+                # Stream the LUT
+                print_step("Initializing streaming backend")
+                with backend:
+                    print_success(f"📡 Streaming LUT to '{backend.name}' stream")
+                    print_info("   Check your Syphon/Spout receiver now!")
+                    print_info("   Streaming for 15 seconds at 30 FPS...")
+
+                    start_time = time.time()
+                    frame_count = 0
+
+                    while time.time() - start_time < 15.0:
+                        backend.send_lut_texture(hald_image)
+                        frame_count += 1
+                        time.sleep(1 / 30)  # 30 FPS
+
+                        # Progress indicator every 5 seconds
+                        if frame_count % 150 == 0:  # Every 5 seconds at 30 FPS
+                            elapsed = time.time() - start_time
+                            print_info(f"   Streaming... {elapsed:.1f}s elapsed, {frame_count} frames")
+
+                    print_success(f"Streamed {frame_count} frames over 15 seconds")
+
+            else:
+                print_error("Backend is not available (missing dependencies)")
+
+        except Exception as e:
+            print_error(f"Could not create backend: {e}")
+    else:
+        print_info("Streaming not supported on this platform")
+        print_info("💡 Platform-specific streaming dependencies are automatically installed!")
+        print_info("   - No extra steps needed - Syphon/Spout support is built-in")
+        print_info("🎬 Demo would stream for 15 seconds at 30 FPS if dependencies were available")
 
 
-def example_streaming_demo(hald_image: np.ndarray) -> None:
-    """Example: Full streaming demonstration with proper lifecycle."""
-    print_section("Streaming Demonstration")
-
-    # Check platform support first
-    if not StreamingFactory.is_platform_supported():
-        print_error("Streaming not supported on this platform")
-        print_info("Platform-specific dependencies are automatically installed")
-        print_info("No extra steps needed for Syphon (macOS) or Spout (Windows)")
-        return
-
-    print_step("Creating streaming backend with default name 'virtual-gpu-lut-box'")
-    try:
-        # Create streaming backend (uses default name "virtual-gpu-lut-box")
-        backend = StreamingFactory.create_lut_streamer()
-        print_info(f"Created backend: {backend.__class__.__name__}")
-        print_info(f"Backend dimensions: {backend.width}x{backend.height}")
-        print_info(f"Stream name: '{backend.name}'")
-
-        # Check if backend is available
-        print_step("Verifying backend availability")
-        if not backend.is_available():
-            print_error("Backend is not available (missing dependencies)")
-            return
-
-        print_success("Backend is available for streaming")
-
-        # Initialize and start streaming
-        print_step("Starting streaming demonstration")
-        with backend:
-            print_info(f"📡 Streaming LUT to '{backend.name}' stream")
-            print_info("📺 Check your Syphon/Spout receiver now!")
-            print_info("🕐 Streaming for 15 seconds at 30 FPS...")
-
-            start_time = time.time()
-            frame_count = 0
-            target_fps = 30
-            frame_delay = 1.0 / target_fps
-
-            while time.time() - start_time < 15.0:
-                frame_start = time.time()
-
-                # Send frame
-                if backend.send_lut_texture(hald_image):
-                    frame_count += 1
-                else:
-                    print_error("Failed to send frame")
-                    break
-
-                # Frame timing
-                elapsed = time.time() - frame_start
-                sleep_time = max(0, frame_delay - elapsed)
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-
-            duration = time.time() - start_time
-            actual_fps = frame_count / duration
-            print_success(f"Streamed {frame_count} frames over {duration:.1f} seconds")
-            print_info(f"Average FPS: {actual_fps:.1f}")
-
-    except Exception as e:
-        print_error(f"Could not create streaming backend: {e}")
+def example_opengradeio_workflow() -> None:
+    """Example: OpenGradeIO workflow demonstration."""
+    print_section("OpenGradeIO Integration Workflow")
+    
+    print_step("Setting up OpenGradeIO integration")
+    print_info("This demo shows the complete OpenGradeIO to GPU workflow:")
+    print_info("1. OpenGradeIO sends LUT data via BSON over TCP")
+    print_info("2. Virtual GPU LUT Box receives and processes the data")
+    print_info("3. LUT is converted to Hald image format")
+    print_info("4. Hald image is streamed to GPU via Syphon/Spout")
+    print_info("5. GPU shaders can sample the LUT for color grading")
+    
+    print_step("To use OpenGradeIO integration in practice:")
+    print_info("• Start server: virtual-gpu-lut-box listen --verbose")
+    print_info("• Configure OpenGradeIO to connect to 127.0.0.1:8089")
+    print_info("• LUTs are automatically streamed with names: vglb-lut-{channel}")
+    print_info("• Multiple channels/instances are supported simultaneously")
+    print_info("• 32-bit float precision is preserved throughout the pipeline")
+    
+    print_success("OpenGradeIO integration workflow explained")
 
 
-def example_texture_formats() -> None:
-    """Example: Work with different texture formats."""
-    print_section("Texture Format Examples")
-
-    # Generate LUT and convert to Hald
-    print_step("Generating smaller LUT for format demonstration (size=17)")
-    generator = LUTGenerator(size=17)
-    lut = generator.create_custom_lut(gamma=2.2)
-
-    print_step("Creating Hald converter")
-    converter = HaldConverter(lut_size=17)
-    converter.lut_to_hald(lut)
-
-    # Convert to different texture formats
-    print_step("Converting to different texture formats")
-    formats = ["rgb", "rgba", "bgr", "bgra"]
-
-    for fmt in formats:
-        texture_data = converter.convert_lut_to_texture_data(lut, fmt)
-        print_info(
-            f"{fmt.upper()} format: {texture_data.shape}, range: [{texture_data.min():.3f}, {texture_data.max():.3f}]"
-        )
-
-    # Show optimal texture size
-    width, height = converter.get_optimal_texture_size()
-    print_info(f"Optimal texture size: {width}x{height}")
-    print_success("Texture format examples completed")
-
-
-def example_gpu_coordinates() -> None:
-    """Example: Generate GPU texture coordinates."""
-    print_section("GPU Texture Coordinates")
-
-    print_step("Creating converter for coordinate demonstration (size=5)")
-    converter = HaldConverter(lut_size=5)
-
-    # Get texture coordinates
-    print_step("Generating GPU texture coordinates")
-    u_coords, v_coords = converter.create_gpu_texture_coords()
-    print_info(f"U coordinates: {len(u_coords)} values")
-    print_info(f"First few U coords: {u_coords[:5]}")
-    print_info(f"V coordinates: {len(v_coords)} values")
-    print_info(f"V coords: {v_coords}")
-
-    # Get slice boundaries
-    print_step("Calculating slice boundaries")
-    boundaries = converter.get_slice_boundaries()
-    print_info(f"Slice boundaries: {len(boundaries)} slices")
-    for i, (start, end) in enumerate(boundaries):
-        print(f"         Slice {i}: U = {start:.3f} to {end:.3f}")
-
-    print_success("GPU coordinate examples completed")
+def example_performance_testing() -> None:
+    """Example: Performance testing and optimization."""
+    print_section("Performance Testing")
+    
+    print_step("Testing different LUT sizes")
+    
+    lut_sizes = [16, 33, 64]
+    for lut_size in lut_sizes:
+        print_step(f"Testing {lut_size}x{lut_size}x{lut_size} LUT")
+        
+        # Time LUT creation
+        start_time = time.time()
+        lut = create_identity_lut(lut_size)
+        lut_time = time.time() - start_time
+        
+        # Time Hald conversion
+        start_time = time.time()
+        converter = HaldConverter(lut_size=lut_size)
+        hald_image = converter.lut_to_hald(lut)
+        hald_time = time.time() - start_time
+        
+        # Calculate memory usage
+        lut_memory = lut.nbytes / (1024 * 1024)  # MB
+        hald_memory = hald_image.nbytes / (1024 * 1024)  # MB
+        
+        print_info(f"  LUT creation: {lut_time:.4f}s")
+        print_info(f"  Hald conversion: {hald_time:.4f}s")
+        print_info(f"  LUT memory: {lut_memory:.2f} MB")
+        print_info(f"  Hald memory: {hald_memory:.2f} MB")
+        print_info(f"  Hald dimensions: {hald_image.shape[1]}x{hald_image.shape[0]}")
+    
+    print_success("Performance testing completed")
 
 
-def main():
-    """Run comprehensive demo with consistent formatting."""
-    start_time = datetime.datetime.now()
-
+def main() -> None:
+    """Run comprehensive demo with consistent timestamped output."""
+    print(f"[{format_timestamp()}] Virtual GPU LUT Box - Comprehensive Demo")
     print("=" * 70)
-    print("Virtual GPU LUT Box - Comprehensive Demo")
-    print("=" * 70)
-    print_info(f"Demo started at {start_time.strftime('%H:%M:%S')}")
 
-    try:
-        # Run all examples in sequence
-        example_lut_generation()
-        hald_image = example_hald_conversion()
-        platform_info = example_platform_detection()
-        example_streaming_demo(hald_image)
-        example_texture_formats()
-        example_gpu_coordinates()
+    # Run all examples
+    example_hald_conversion()
+    example_streaming_setup()
+    example_opengradeio_workflow()
+    example_performance_testing()
 
-        # Summary
-        end_time = datetime.datetime.now()
-        duration = (end_time - start_time).total_seconds()
-
-        print_section("Demo Summary")
-        print_success("All examples completed successfully")
-        print_info(f"Total demo duration: {duration:.1f} seconds")
-        print_info(f"Platform supported: {platform_info['supported']}")
-        print_info("Stream name used: 'virtual-gpu-lut-box'")
-
-        if platform_info["supported"]:
-            print_info("✨ Streaming functionality is fully operational!")
-            print_info("🎯 Default stream name 'virtual-gpu-lut-box' is ready for use")
-        else:
-            print_info("💡 Streaming would work with proper platform dependencies")
-
-    except Exception as e:
-        print_error(f"Demo failed: {e}")
-        raise
+    print_section("Demo Complete")
+    print_success("All examples completed successfully!")
+    print_info("Thank you for trying Virtual GPU LUT Box!")
 
 
 if __name__ == "__main__":

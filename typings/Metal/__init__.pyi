@@ -49,6 +49,9 @@ class MTLSize:
 # Constants - these are loaded dynamically by PyObjC but we provide types here
 MTLPixelFormatRGBA8Unorm: int
 MTLPixelFormatRGBA32Float: int
+# RGB-only formats for efficiency (no alpha channel)
+MTLPixelFormatRG11B10Float: int  # 32-bit RGB float format
+MTLPixelFormatRGB9E5Float: int   # 32-bit RGB shared exponent format
 MTLTextureUsageShaderRead: int
 MTLTextureUsageShaderWrite: int
 
@@ -66,6 +69,8 @@ __all__ = [
     'MTLSize',
     'MTLPixelFormatRGBA8Unorm',
     'MTLPixelFormatRGBA32Float',
+    'MTLPixelFormatRG11B10Float',
+    'MTLPixelFormatRGB9E5Float',
     'MTLTextureUsageShaderRead',
     'MTLTextureUsageShaderWrite',
     'MTLCreateSystemDefaultDevice',

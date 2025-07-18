@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from virtual_gpu_lut_box.gpu_texture_stream.base import StreamingBackend
+from virtual_gpu_lut_box.gpu_texture_stream.base import StreamingBackend, InitializationError
 from virtual_gpu_lut_box.gpu_texture_stream.factory import (
     PlatformNotSupportedError,
     StreamingFactory,
@@ -22,16 +22,17 @@ class MockBackend(StreamingBackend):
         self._available = available
         self._init_success = True
 
-    def initialize(self) -> bool:
+    def initialize(self) -> None:
         if not self._available:
-            return False
+            raise InitializationError("Mock backend not available")
         self._initialized = self._init_success
-        return self._init_success
+        if not self._init_success:
+            raise InitializationError("Mock initialization failed")
 
-    def send_texture(self, texture_data: np.ndarray) -> bool:
+    def send_texture(self, texture_data: np.ndarray) -> None:
         if not self._initialized:
-            return False
-        return self.validate_texture_data(texture_data)
+            raise RuntimeError("Mock backend not initialized")
+        self.validate_texture_data(texture_data)
 
     def cleanup(self) -> None:
         self._initialized = False

@@ -97,10 +97,7 @@ class OpenGradeIOLUTStreamer:
                 )
 
                 # Initialize the backend
-                if not self._streamer.initialize():
-                    raise RuntimeError(
-                        f"Failed to initialize {self._streamer.__class__.__name__} backend"
-                    )
+                self._streamer.initialize()
 
                 self._current_lut_size = lut_size
                 self._is_streaming = True
@@ -175,7 +172,7 @@ class OpenGradeIOLUTStreamer:
             # Use channel_name for stream naming if provided
             stream_name = None
             if channel_name:
-                stream_name = f"ogio-lut-{channel_name}"
+                stream_name = f"vglb-lut-{channel_name}"
                 logger.info("Using channel-specific stream name: %s", stream_name)
 
             self._ensure_streaming_backend(lut_size, stream_name)
@@ -196,9 +193,7 @@ class OpenGradeIOLUTStreamer:
                 raise RuntimeError("Streaming backend not ready after initialization")
 
             try:
-                success = self._streamer.send_lut_texture(hald_image)  # type: ignore[attr-defined]
-                if not success:
-                    raise RuntimeError("Backend returned False for send_lut_texture")
+                self._streamer.send_lut_texture(hald_image)  # type: ignore[attr-defined]
 
                 effective_name = stream_name or self.stream_name
                 logger.info(

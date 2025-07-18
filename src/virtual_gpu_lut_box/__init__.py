@@ -5,16 +5,13 @@ to GPU shaders via Spout (Windows) and Syphon (macOS).
 """
 
 __version__ = "0.1.0"
-__author__ = "Virtual GPU LUT Box"
-__email__ = "support@example.com"
+__author__ = "Fuse Technical Group"
 
 from .gpu_texture_stream.factory import StreamingFactory
-from .lut.generator import LUTGenerator
 from .lut.hald_converter import HaldConverter
 from .network import OpenGradeIOLUTStreamer, OpenGradeIOServer
 
 __all__ = [
-    "LUTGenerator",
     "HaldConverter",
     "StreamingFactory",
     "OpenGradeIOServer",
