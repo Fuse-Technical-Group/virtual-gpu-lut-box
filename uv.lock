@@ -464,7 +464,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bson", specifier = ">=0.5.0" },
-    { name = "build", marker = "extra == 'dev'", specifier = ">=0.10.0" },
+    { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "glfw", marker = "platform_system == 'Darwin'", specifier = ">=2.5.0" },
     { name = "invoke", marker = "extra == 'dev'", specifier = ">=2.0.0" },
