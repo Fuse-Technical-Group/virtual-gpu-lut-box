@@ -168,6 +168,15 @@ uv run invoke test
 
 # Type checking with Pyright
 uv run invoke typecheck
+
+# Spell checking with cspell
+uv run invoke spell
+
+# Security analysis with bandit
+uv run invoke security
+
+# Check for banned code patterns
+uv run invoke check-patterns
 ```
 
 ### Code Quality
@@ -175,10 +184,13 @@ uv run invoke typecheck
 The project uses modern Python tooling:
 - **Pyright**: Fast, accurate type checking
 - **Ruff**: Ultra-fast Python linter and formatter
+- **CSpell**: Comprehensive spell checking for code and documentation
+- **Bandit**: Security analysis for Python code
 - **TID Rules**: Enforced fully qualified imports for better maintainability
 - **32-bit Float Support**: Custom Metal type stubs for macOS, enforced precision preservation
 - **Exception Handling**: No silent failures - all exceptions are properly handled
 - **Format Validation**: Strict validation that errors on unsupported formats
+- **Pattern Checking**: Automated detection of banned code patterns
 
 ### Manual Commands
 
@@ -192,6 +204,12 @@ uv run ruff format src tests
 
 # Type checking
 uv run pyright
+
+# Spell checking
+uv run cspell --config .cspell.json '**/*.{py,md,yml,yaml,json,txt,rst}'
+
+# Security analysis
+uv run bandit -r src/virtual_gpu_lut_box
 
 # Building
 uv run python -m build

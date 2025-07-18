@@ -23,11 +23,15 @@ uv add invoke --dev
 - **`invoke clean`** - Clean build artifacts, cache files, and temporary files
 - **`invoke format`** - Format code with ruff
 - **`invoke lint`** - Run linting with ruff
-- **`invoke typecheck`** - Run type checking with mypy
+- **`invoke typecheck`** - Run type checking with pyright
+- **`invoke spell`** - Run spell checking with cspell
+  - `--fix` - Interactive spell checking mode
+- **`invoke security`** - Run security analysis with bandit
+- **`invoke check-patterns`** - Check for banned code patterns
 - **`invoke test`** - Run tests with pytest
   - `--no-coverage` - Skip coverage report
   - `--verbose` - Run with verbose output
-- **`invoke quality`** - Run all quality checks (format, lint, typecheck, test)
+- **`invoke quality`** - Run all quality checks (format, lint, typecheck, spell, security, check-patterns, test)
 
 ### Build & Release Tasks
 
@@ -104,7 +108,7 @@ invoke all
 
 Some tasks have dependencies that run automatically:
 
-- `invoke quality` → runs `format`, `lint`, `typecheck`, `test`
+- `invoke quality` → runs `format`, `lint`, `typecheck`, `spell`, `security`, `check-patterns`, `test`
 - `invoke build` → runs `clean` first
 - `invoke publish` → runs `build` first
 - `invoke release` → runs `quality` and `build`
