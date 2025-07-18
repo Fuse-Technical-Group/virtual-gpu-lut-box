@@ -11,7 +11,9 @@ class MTLDevice(Protocol):
     def name(self) -> str: ...
     def hasUnifiedMemory(self) -> bool: ...
     def newCommandQueue(self) -> MTLCommandQueue | None: ...
-    def newTextureWithDescriptor_(self, descriptor: MTLTextureDescriptor) -> MTLTexture | None: ...
+    def newTextureWithDescriptor_(
+        self, descriptor: MTLTextureDescriptor
+    ) -> MTLTexture | None: ...
 
 class MTLCommandQueue(Protocol):
     pass
@@ -22,19 +24,14 @@ class MTLTexture(Protocol):
         region: MTLRegion,
         mipmap_level: int,
         bytes_data: bytes,
-        bytes_per_row: int
+        bytes_per_row: int,
     ) -> None: ...
 
 class MTLTextureDescriptor(Protocol):
     @classmethod
     def texture2DDescriptorWithPixelFormat_width_height_mipmapped_(
-        cls,
-        pixel_format: int,
-        width: int,
-        height: int,
-        mipmapped: bool
+        cls, pixel_format: int, width: int, height: int, mipmapped: bool
     ) -> MTLTextureDescriptor: ...
-
     def setUsage_(self, usage: int) -> None: ...
 
 class MTLRegion:
@@ -51,7 +48,7 @@ MTLPixelFormatRGBA8Unorm: int
 MTLPixelFormatRGBA32Float: int
 # RGB-only formats for efficiency (no alpha channel)
 MTLPixelFormatRG11B10Float: int  # 32-bit RGB float format
-MTLPixelFormatRGB9E5Float: int   # 32-bit RGB shared exponent format
+MTLPixelFormatRGB9E5Float: int  # 32-bit RGB shared exponent format
 MTLTextureUsageShaderRead: int
 MTLTextureUsageShaderWrite: int
 
@@ -60,18 +57,18 @@ def MTLCreateSystemDefaultDevice() -> MTLDevice | None: ...
 
 # Export all the types that might be used
 __all__ = [
-    'MTLDevice',
-    'MTLCommandQueue',
-    'MTLTexture',
-    'MTLTextureDescriptor',
-    'MTLRegion',
-    'MTLOrigin',
-    'MTLSize',
-    'MTLPixelFormatRGBA8Unorm',
-    'MTLPixelFormatRGBA32Float',
-    'MTLPixelFormatRG11B10Float',
-    'MTLPixelFormatRGB9E5Float',
-    'MTLTextureUsageShaderRead',
-    'MTLTextureUsageShaderWrite',
-    'MTLCreateSystemDefaultDevice',
+    "MTLDevice",
+    "MTLCommandQueue",
+    "MTLTexture",
+    "MTLTextureDescriptor",
+    "MTLRegion",
+    "MTLOrigin",
+    "MTLSize",
+    "MTLPixelFormatRGBA8Unorm",
+    "MTLPixelFormatRGBA32Float",
+    "MTLPixelFormatRG11B10Float",
+    "MTLPixelFormatRGB9E5Float",
+    "MTLTextureUsageShaderRead",
+    "MTLTextureUsageShaderWrite",
+    "MTLCreateSystemDefaultDevice",
 ]

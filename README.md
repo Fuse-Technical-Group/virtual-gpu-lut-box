@@ -98,7 +98,7 @@ server.start()
 ### Components
 
 - **HaldConverter**: Converts 3D LUTs to 2D Hald image format for GPU consumption
-- **StreamingFactory**: Platform-aware factory with lazy initialization and size adaptation  
+- **StreamingFactory**: Platform-aware factory with lazy initialization and size adaptation
 - **SpoutBackend**: Windows Spout streaming with 32-bit float precision support
 - **SyphonBackend**: macOS Syphon streaming with Metal integration and 32-bit float textures
 - **OpenGradeIOServer**: TCP server for OpenGradeIO BSON protocol

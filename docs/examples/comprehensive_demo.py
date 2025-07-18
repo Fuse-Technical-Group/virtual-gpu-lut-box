@@ -64,7 +64,9 @@ def apply_gamma_correction(lut: np.ndarray, gamma: float) -> np.ndarray:
     """Apply gamma correction to LUT."""
     print_step(f"Applying gamma correction (γ = {gamma})")
     corrected_lut = np.power(lut, 1.0 / gamma)
-    print_success(f"Gamma correction applied, range: [{corrected_lut.min():.3f}, {corrected_lut.max():.3f}]")
+    print_success(
+        f"Gamma correction applied, range: [{corrected_lut.min():.3f}, {corrected_lut.max():.3f}]"
+    )
     return corrected_lut
 
 
@@ -74,7 +76,9 @@ def example_lut_generation() -> np.ndarray:
 
     # Create identity LUT
     identity_lut = create_identity_lut(33)
-    print_info(f"Identity LUT corners: {identity_lut[0, 0, 0]}, {identity_lut[32, 32, 32]}")
+    print_info(
+        f"Identity LUT corners: {identity_lut[0, 0, 0]}, {identity_lut[32, 32, 32]}"
+    )
 
     # Apply gamma correction
     gamma_lut = apply_gamma_correction(identity_lut, 2.2)
@@ -83,7 +87,9 @@ def example_lut_generation() -> np.ndarray:
     # Create a LUT with brightness adjustment
     print_step("Applying brightness adjustment (+0.1)")
     brightness_lut = np.clip(gamma_lut + 0.1, 0.0, 1.0)
-    print_success(f"Brightness adjustment applied, range: [{brightness_lut.min():.3f}, {brightness_lut.max():.3f}]")
+    print_success(
+        f"Brightness adjustment applied, range: [{brightness_lut.min():.3f}, {brightness_lut.max():.3f}]"
+    )
 
     return brightness_lut
 
@@ -166,7 +172,9 @@ def example_streaming_setup() -> None:
                         # Progress indicator every 5 seconds
                         if frame_count % 150 == 0:  # Every 5 seconds at 30 FPS
                             elapsed = time.time() - start_time
-                            print_info(f"   Streaming... {elapsed:.1f}s elapsed, {frame_count} frames")
+                            print_info(
+                                f"   Streaming... {elapsed:.1f}s elapsed, {frame_count} frames"
+                            )
 
                     print_success(f"Streamed {frame_count} frames over 15 seconds")
 
@@ -177,9 +185,13 @@ def example_streaming_setup() -> None:
             print_error(f"Could not create backend: {e}")
     else:
         print_info("Streaming not supported on this platform")
-        print_info("💡 Platform-specific streaming dependencies are automatically installed!")
+        print_info(
+            "💡 Platform-specific streaming dependencies are automatically installed!"
+        )
         print_info("   - No extra steps needed - Syphon/Spout support is built-in")
-        print_info("🎬 Demo would stream for 15 seconds at 30 FPS if dependencies were available")
+        print_info(
+            "🎬 Demo would stream for 15 seconds at 30 FPS if dependencies were available"
+        )
 
 
 def example_opengradeio_workflow() -> None:

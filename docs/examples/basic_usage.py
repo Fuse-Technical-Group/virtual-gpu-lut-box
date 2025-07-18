@@ -52,16 +52,16 @@ def example_streaming_setup():
     print(f"Python version: {platform_info['python_version']}")
 
     # Check available backends
-    backends = platform_info['available_backends']
+    backends = platform_info["available_backends"]
     print(f"Available backends: {backends}")
 
     # Check if current platform is supported
-    is_supported = platform_info['platform_supported']
+    is_supported = platform_info["platform_supported"]
     print(f"Platform supported: {is_supported}")
 
     if is_supported:
         # Get supported formats
-        formats = platform_info['supported_formats']
+        formats = platform_info["supported_formats"]
         print(f"Supported formats: {formats}")
 
         try:

@@ -176,16 +176,16 @@ jobs:
         python -c "
         from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory
         import inspect
-        
+
         # Generate basic API documentation
         with open('docs/api.md', 'w') as f:
             f.write('# API Documentation\n\n')
-            
+
             classes = [LUTGenerator, HaldConverter, StreamingFactory]
             for cls in classes:
                 f.write(f'## {cls.__name__}\n\n')
                 f.write(f'{cls.__doc__ or \"No documentation available.\"}\n\n')
-                
+
                 for name, method in inspect.getmembers(cls, predicate=inspect.ismethod):
                     if not name.startswith('_'):
                         f.write(f'### {name}\n\n')

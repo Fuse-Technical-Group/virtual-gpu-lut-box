@@ -112,7 +112,7 @@ ignore = [
 [tool.ruff.lint.flake8-tidy-imports]
 # Ban relative imports beyond parent level (.. is ok, ... is not)
 ban-relative-imports = "parents"
-# Enforce fully qualified imports for common stdlib modules  
+# Enforce fully qualified imports for common stdlib modules
 banned-module-level-imports = ["typing.*", "collections.*", "os.path"]
 
 # Create a pre-commit hook or manual check for contextlib.suppress patterns

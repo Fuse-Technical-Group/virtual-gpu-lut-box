@@ -208,7 +208,8 @@ def docs(ctx: Context) -> None:
     api_doc = docs_dir / "api.md"
     print(f"  Generating API documentation: {api_doc}")
 
-    ctx.run(f'''python -c "
+    ctx.run(
+        f'''python -c "
 import sys
 sys.path.insert(0, 'src')
 from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory
@@ -237,7 +238,8 @@ with open('{api_doc}', 'w') as f:
             if hasattr(method, '__doc__') and method.__doc__:
                 f.write(f'### {{method_name}}\\n\\n')
                 f.write(f'{{method.__doc__}}\\n\\n')
-"''')
+"'''
+    )
 
     print("✅ Documentation generated")
 

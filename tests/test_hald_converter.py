@@ -44,7 +44,7 @@ class TestHaldConverter:
         converter = HaldConverter(5)
         lut = np.random.rand(4, 5, 5, 3).astype(np.float32)
 
-        with pytest.raises(ValueError, match="LUT must have shape"):
+        with pytest.raises(ValueError, match="LUT must have spatial shape"):
             converter.lut_to_hald(lut)
 
     def test_hald_to_lut_shape(self) -> None:
