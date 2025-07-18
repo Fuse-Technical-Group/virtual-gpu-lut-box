@@ -17,16 +17,36 @@ from .gpu_texture_stream.factory import PlatformNotSupportedError, StreamingFact
 from .network import OpenGradeIOLUTStreamer, OpenGradeIOServer
 
 
-@click.group()
+@click.command()
+@click.option("--host", default="127.0.0.1", help="Server host address")
+@click.option("--port", default=8089, help="Server port number")
+@click.option(
+    "--stream-name",
+    default="OpenGradeIO-LUT",
+    help="Base Spout/Syphon stream name",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option("--info", is_flag=True, help="Show system information and exit")
 @click.version_option()
-def main() -> None:
-    """Virtual GPU LUT Box - Network-to-GPU LUT streaming for professional color grading."""
-    pass
+def main(
+    host: str,
+    port: int,
+    stream_name: str,
+    verbose: bool,
+    info: bool,
+) -> None:
+    """Virtual GPU LUT Box - Network-to-GPU LUT streaming for professional color grading.
+
+    By default, starts the OpenGradeIO server. Use --info to show system information instead.
+    """
+    if info:
+        show_system_info()
+        return
+
+    start_server(host, port, stream_name, verbose)
 
 
-@main.command()
-@click.option("--platform", help="Override platform detection")
-def info(platform: str | None) -> None:
+def show_system_info() -> None:
     """Show system and platform information."""
     try:
         # Show platform info
@@ -36,7 +56,7 @@ def info(platform: str | None) -> None:
             click.echo(f"  {key}: {value}")
 
         # Show current platform
-        current_platform = platform or StreamingFactory.get_current_platform()
+        current_platform = StreamingFactory.get_current_platform()
         click.echo(f"\nCurrent platform: {current_platform}")
 
         # Show supported platforms
@@ -44,12 +64,12 @@ def info(platform: str | None) -> None:
         click.echo(f"Available backends: {', '.join(available_backends)}")
 
         # Show platform support
-        is_supported = StreamingFactory.is_platform_supported(platform)
+        is_supported = StreamingFactory.is_platform_supported()
         click.echo(f"Platform supported: {is_supported}")
 
         # Show supported formats
         if is_supported:
-            formats = StreamingFactory.list_supported_formats(platform)
+            formats = StreamingFactory.list_supported_formats()
             click.echo(f"Supported formats: {', '.join(formats)}")
 
         # Show streaming info
@@ -64,16 +84,7 @@ def info(platform: str | None) -> None:
         sys.exit(1)
 
 
-@main.command()
-@click.option("--host", default="127.0.0.1", help="Server host address")
-@click.option("--port", default=8089, help="Server port number")
-@click.option(
-    "--stream-name",
-    default="OpenGradeIO-LUT",
-    help="Base Spout/Syphon stream name",
-)
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
-def listen(
+def start_server(
     host: str,
     port: int,
     stream_name: str,

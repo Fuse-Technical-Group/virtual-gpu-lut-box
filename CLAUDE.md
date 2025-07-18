@@ -24,6 +24,21 @@ Cross-platform Python package for streaming color correction LUTs from OpenGrade
 - Chain exceptions using `raise ... from e` to preserve stack traces
 - Only use boolean returns for actual boolean operations (availability checks, state queries)
 
+### String Formatting Best Practice (2025)
+**Always use f-strings for string formatting.** This is the modern Python standard:
+
+- ✅ **Good:** `logger.info(f"Processing {lut_size}x{lut_size}x{lut_size} LUT")`
+- ❌ **Bad:** `logger.info("Processing %dx%dx%d LUT", lut_size, lut_size, lut_size)`
+
+**Why f-strings are preferred:**
+- **Performance:** Fastest string formatting method in Python
+- **Readability:** Variables are inline, making code more readable
+- **Maintainability:** Less prone to argument mismatch errors
+- **Consistency:** One formatting style throughout the codebase
+- **IDE Support:** Better syntax highlighting and autocomplete
+
+**Ruff enforcement:** UP032 rule ensures f-strings are used consistently
+
 ### LUT Processing Pipeline
 - **Input:** OpenGradeIO BSON protocol over TCP
 - **Processing:** 32-bit float precision preservation throughout
@@ -71,8 +86,9 @@ Cross-platform Python package for streaming color correction LUTs from OpenGrade
 - Linux: Not supported (no texture streaming framework)
 
 ## Command Line Interface
-- `virtual-gpu-lut-box listen` - Start OpenGradeIO server
-- `virtual-gpu-lut-box info` - Platform and capability information
+- `virtual-gpu-lut-box` - Start OpenGradeIO server (default behavior)
+- `virtual-gpu-lut-box --info` - Platform and capability information
+- Simple, focused CLI with server startup as the primary function
 - All CLI commands handle exceptions gracefully with user-friendly error messages
 
 ## Stream Naming Convention
@@ -88,3 +104,7 @@ Cross-platform Python package for streaming color correction LUTs from OpenGrade
   - Updated example files to use only implemented functionality
   - Removed tests for non-existent `LUTGenerator` class
   - Fixed test mocks to match actual method signatures
+- **String Formatting Modernization (2025)**: Converted all % formatting to f-strings
+  - Standardized ~50+ logging statements to use f-strings
+  - Added UP032 ruff rule to enforce f-string usage going forward
+  - Improved readability and performance of string formatting

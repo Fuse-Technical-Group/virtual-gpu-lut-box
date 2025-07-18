@@ -133,10 +133,10 @@ def example_opengradeio_integration():
     
     # This example shows how to use the OpenGradeIO network server
     # In practice, you would run this as a CLI command:
-    # virtual-gpu-lut-box listen --host 127.0.0.1 --port 8089 --verbose
+    # virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
     
     print("To use OpenGradeIO integration:")
-    print("1. Start the server: virtual-gpu-lut-box listen")
+    print("1. Start the server: virtual-gpu-lut-box")
     print("2. Configure OpenGradeIO to connect to 127.0.0.1:8089")
     print("3. LUTs will be automatically streamed to GPU via Syphon/Spout")
     print("4. Stream names will be: vglb-lut-{channel}")

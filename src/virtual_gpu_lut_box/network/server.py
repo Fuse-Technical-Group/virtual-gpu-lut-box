@@ -59,7 +59,7 @@ class OpenGradeIOServer:
         self._running = True
         self._server_thread = threading.Thread(target=self._run_server, daemon=True)
         self._server_thread.start()
-        logger.info("OpenGradeIO server started on %s:%d", self.host, self.port)
+        logger.info(f"OpenGradeIO server started on {self.host}:{self.port}")
 
     def stop(self) -> None:
         """Stop the server and all client connections."""
@@ -74,7 +74,7 @@ class OpenGradeIOServer:
             try:
                 self._server_socket.close()
             except Exception as e:
-                logger.error("Error closing server socket: %s", e)
+                logger.error(f"Error closing server socket: {e}")
 
         # Wait for server thread to finish
         if self._server_thread and self._server_thread.is_alive():
@@ -97,7 +97,7 @@ class OpenGradeIOServer:
             self._server_socket.listen(5)
 
             logger.info(
-                "Listening for OpenGradeIO connections on %s:%d", self.host, self.port
+                f"Listening for OpenGradeIO connections on {self.host}:{self.port}"
             )
 
             while self._running:
@@ -111,7 +111,7 @@ class OpenGradeIOServer:
                         break
 
                     logger.info(
-                        "OpenGradeIO client connected from %s:%d", addr[0], addr[1]
+                        f"OpenGradeIO client connected from {addr[0]}:{addr[1]}"
                     )
 
                     # Start client handler thread
@@ -130,10 +130,10 @@ class OpenGradeIOServer:
                     continue
                 except Exception as e:
                     if self._running:
-                        logger.error("Error accepting connection: %s", e)
+                        logger.error(f"Error accepting connection: {e}")
 
         except Exception as e:
-            logger.error("Server error: %s", e)
+            logger.error(f"Server error: {e}")
         finally:
             if self._server_socket:
                 self._server_socket.close()
@@ -156,7 +156,7 @@ class OpenGradeIOServer:
                     if not message:
                         break
 
-                    logger.debug("Received message from %s:%d", address[0], address[1])
+                    logger.debug(f"Received message from {address[0]}:{address[1]}")
 
                     # Process message
                     success = self._process_message(message)
@@ -166,17 +166,17 @@ class OpenGradeIOServer:
                     connection.sendobj(response)  # type: ignore[attr-defined]
 
                 except Exception as e:
-                    logger.error("Error handling client message: %s", e)
+                    logger.error(f"Error handling client message: {e}")
                     break
 
         except Exception as e:
-            logger.error("Client handler error: %s", e)
+            logger.error(f"Client handler error: {e}")
         finally:
             try:
                 connection.close()
-                logger.info("Client %s:%d disconnected", address[0], address[1])
+                logger.info(f"Client {address[0]}:{address[1]} disconnected")
             except Exception as e:
-                logger.debug("Error during client disconnect cleanup: %s", e)
+                logger.debug(f"Error during client disconnect cleanup: {e}")
 
     def _process_message(self, message: dict) -> bool:
         """Process incoming message from OpenGradeIO.
@@ -200,11 +200,11 @@ class OpenGradeIOServer:
                 return self._handle_set_lut(arguments, top_level_metadata)
             if command == "setCDL":
                 return self._handle_set_cdl(arguments)
-            logger.warning("Unhandled command: %s", command)
+            logger.warning(f"Unhandled command: {command}")
             return False
 
         except Exception as e:
-            logger.error("Error processing message: %s", e)
+            logger.error(f"Error processing message: {e}")
             return False
 
     def _handle_set_lut(self, arguments: dict, top_level_metadata: dict) -> bool:
@@ -220,21 +220,17 @@ class OpenGradeIOServer:
         try:
             # Log top-level metadata
             if top_level_metadata:
-                logger.info("setLUT top-level metadata: %s", top_level_metadata)
+                logger.info(f"setLUT top-level metadata: {top_level_metadata}")
 
             # Log all arguments to see what OpenGradeIO sends
             logger.info("setLUT arguments received:")
             for key, value in arguments.items():
                 if key == "lutData":
                     logger.info(
-                        "  %s: <binary data, %d bytes>",
-                        key,
-                        len(value)
-                        if isinstance(value, (bytes, bytearray))
-                        else "unknown",
+                        f"  {key}: <binary data, {len(value) if isinstance(value, (bytes, bytearray)) else 'unknown'} bytes>"
                     )
                 else:
-                    logger.info("  %s: %s", key, value)
+                    logger.info(f"  {key}: {value}")
 
             result = self.protocol.process_set_lut_command(arguments)
             if result is None:
@@ -242,11 +238,11 @@ class OpenGradeIOServer:
 
             lut_array, metadata = result
             logger.info(
-                "Processed LUT: shape=%s, dtype=%s", lut_array.shape, lut_array.dtype
+                f"Processed LUT: shape={lut_array.shape}, dtype={lut_array.dtype}"
             )
 
             if metadata:
-                logger.info("LUT metadata: %s", metadata)
+                logger.info(f"LUT metadata: {metadata}")
 
             # Call user callback if provided
             if self.lut_callback:
@@ -263,7 +259,7 @@ class OpenGradeIOServer:
                         self.lut_callback(lut_array)  # type: ignore[misc]
                     logger.info("LUT callback completed successfully")
                 except Exception as e:
-                    logger.error("Error in LUT callback: %s", e)
+                    logger.error(f"Error in LUT callback: {e}")
                     return False
             else:
                 logger.warning("No LUT callback configured - LUT will not be streamed")
@@ -271,7 +267,7 @@ class OpenGradeIOServer:
             return True
 
         except Exception as e:
-            logger.error("Error handling setLUT: %s", e)
+            logger.error(f"Error handling setLUT: {e}")
             return False
 
     def _handle_set_cdl(self, arguments: dict) -> bool:
@@ -284,14 +280,14 @@ class OpenGradeIOServer:
             True if handled successfully
         """
         try:
-            logger.info("Received setCDL message with arguments: %s", arguments)
+            logger.info(f"Received setCDL message with arguments: {arguments}")
 
             # For now, just log the reception - actual CDL processing can be added later
             logger.info("setCDL command processed successfully")
             return True
 
         except Exception as e:
-            logger.error("Error handling setCDL: %s", e)
+            logger.error(f"Error handling setCDL: {e}")
             return False
 
     def set_lut_callback(

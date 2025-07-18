@@ -37,18 +37,18 @@ pip install virtual-gpu-lut-box[dev]
 Start OpenGradeIO network server:
 ```bash
 # Listen for OpenGradeIO connections with default settings
-virtual-gpu-lut-box listen
+virtual-gpu-lut-box
 
 # Custom configuration
-virtual-gpu-lut-box listen --host 127.0.0.1 --port 8089 --verbose
+virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
 
 # Custom base stream name for OpenGradeIO LUTs
-virtual-gpu-lut-box listen --stream-name "MyProject-LUT" --verbose
+virtual-gpu-lut-box --stream-name "MyProject-LUT" --verbose
 ```
 
 Check platform support and system information:
 ```bash
-virtual-gpu-lut-box info
+virtual-gpu-lut-box --info
 ```
 
 ### Python API
@@ -187,7 +187,7 @@ python -m build
 
 ## OpenGradeIO Workflow
 
-1. **Start Server**: `virtual-gpu-lut-box listen`
+1. **Start Server**: `virtual-gpu-lut-box`
 2. **Configure OpenGradeIO**: Set virtual LUT box to `127.0.0.1:8089`
 3. **Apply LUTs**: LUTs are automatically texture streamed to `vglb-lut-{channel}`
 4. **GPU Integration**: Consume the LUT in Hald format in your rendering/compositing application

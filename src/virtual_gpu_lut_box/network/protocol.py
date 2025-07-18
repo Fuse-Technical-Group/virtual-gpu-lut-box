@@ -30,16 +30,16 @@ class ProtocolHandler:
             Parsed command data or None if invalid
         """
         if not isinstance(message, dict):
-            logger.warning("Received non-dict message: %s", type(message))
+            logger.warning(f"Received non-dict message: {type(message)}")
             return None
 
         command = message.get("command")
         if not command:
-            logger.warning("Message missing command field: %s", message)
+            logger.warning(f"Message missing command field: {message}")
             return None
 
         if command not in self.supported_commands:
-            logger.warning("Unsupported command: %s", command)
+            logger.warning(f"Unsupported command: {command}")
             return None
 
         arguments = message.get("arguments", {})
@@ -82,7 +82,7 @@ class ProtocolHandler:
 
             return lut_array, metadata
         except Exception as e:
-            logger.error("Failed to convert LUT data: %s", e)
+            logger.error(f"Failed to convert LUT data: {e}")
             return None
 
     def _convert_lut_data(
@@ -123,11 +123,7 @@ class ProtocolHandler:
             )
 
         logger.info(
-            "Processing %dx%dx%d LUT (%d bytes)",
-            lut_size,
-            lut_size,
-            lut_size,
-            len(lut_data),
+            f"Processing {lut_size}x{lut_size}x{lut_size} LUT ({len(lut_data)} bytes)"
         )
 
         # Reshape to (size^3, 4) for RGBA

@@ -71,26 +71,21 @@ class OpenGradeIOLUTStreamer:
             if self._streamer is not None:
                 if self._current_lut_size != lut_size:
                     logger.info(
-                        "Recreating streaming backend for LUT size change: %d -> %d",
-                        self._current_lut_size,
-                        lut_size,
+                        f"Recreating streaming backend for LUT size change: {self._current_lut_size} -> {lut_size}"
                     )
                 else:
                     logger.info("Recreating streaming backend")
                 try:
                     self._streamer.__exit__(None, None, None)  # type: ignore[attr-defined]
                 except Exception as e:
-                    logger.warning("Error cleaning up old backend: %s", e)
+                    logger.warning(f"Error cleaning up old backend: {e}")
                 self._streamer = None
                 self._is_streaming = False
 
             # Create new backend with correct dimensions
             try:
                 logger.info(
-                    "Creating streaming backend for %dx%dx%d LUT",
-                    lut_size,
-                    lut_size,
-                    lut_size,
+                    f"Creating streaming backend for {lut_size}x{lut_size}x{lut_size} LUT"
                 )
                 self._streamer = StreamingFactory.create_lut_streamer(
                     effective_stream_name, lut_size
@@ -102,11 +97,7 @@ class OpenGradeIOLUTStreamer:
                 self._current_lut_size = lut_size
                 self._is_streaming = True
                 logger.info(
-                    "Started streaming to '%s' with %dx%dx%d LUT",
-                    effective_stream_name,
-                    lut_size,
-                    lut_size,
-                    lut_size,
+                    f"Started streaming to '{effective_stream_name}' with {lut_size}x{lut_size}x{lut_size} LUT"
                 )
                 return True
 
@@ -114,7 +105,7 @@ class OpenGradeIOLUTStreamer:
                 logger.error("Platform not supported for streaming")
                 raise
             except Exception as e:
-                logger.error("Failed to create streaming backend: %s", e)
+                logger.error(f"Failed to create streaming backend: {e}")
                 raise RuntimeError(f"Failed to create streaming backend: {e}") from e
 
         return True
@@ -132,7 +123,7 @@ class OpenGradeIOLUTStreamer:
             logger.info("Stopped streaming")
 
         except Exception as e:
-            logger.error("Error stopping streaming: %s", e)
+            logger.error(f"Error stopping streaming: {e}")
 
     def process_lut(
         self, lut_data: np.ndarray[Any, Any], channel_name: str | None = None
@@ -166,14 +157,14 @@ class OpenGradeIOLUTStreamer:
         try:
             # Get LUT size from received data
             lut_size = lut_data.shape[0]
-            logger.debug("Processing %dx%dx%d LUT data", lut_size, lut_size, lut_size)
+            logger.debug(f"Processing {lut_size}x{lut_size}x{lut_size} LUT data")
 
             # Ensure streaming backend is ready for this LUT size
             # Use channel_name for stream naming if provided
             stream_name = None
             if channel_name:
                 stream_name = f"vglb-lut-{channel_name}"
-                logger.info("Using channel-specific stream name: %s", stream_name)
+                logger.info(f"Using channel-specific stream name: {stream_name}")
 
             self._ensure_streaming_backend(lut_size, stream_name)
 
@@ -181,12 +172,12 @@ class OpenGradeIOLUTStreamer:
             if self._converter is None or self._converter.lut_size != lut_size:
                 self._converter = HaldConverter(lut_size)
                 logger.info(
-                    "Created converter for %dx%dx%d LUT", lut_size, lut_size, lut_size
+                    f"Created converter for {lut_size}x{lut_size}x{lut_size} LUT"
                 )
 
             # Convert to Hald image format
             hald_image = self._converter.lut_to_hald(lut_data)
-            logger.debug("Converted LUT to Hald image: %s", hald_image.shape)
+            logger.debug(f"Converted LUT to Hald image: {hald_image.shape}")
 
             # Stream to GPU - backend should be ready at this point
             if not self._is_streaming or self._streamer is None:
@@ -197,23 +188,19 @@ class OpenGradeIOLUTStreamer:
 
                 effective_name = stream_name or self.stream_name
                 logger.info(
-                    "Successfully streamed %dx%dx%d LUT to GPU via %s",
-                    lut_size,
-                    lut_size,
-                    lut_size,
-                    effective_name,
+                    f"Successfully streamed {lut_size}x{lut_size}x{lut_size} LUT to GPU via {effective_name}"
                 )
                 return True
 
             except Exception as e:
-                logger.error("Failed to stream LUT: %s", e)
+                logger.error(f"Failed to stream LUT: {e}")
                 raise RuntimeError(f"Failed to stream LUT: {e}") from e
 
         except (ValueError, RuntimeError, PlatformNotSupportedError):
             # Re-raise validation and known errors
             raise
         except Exception as e:
-            logger.error("Unexpected error processing LUT: %s", e)
+            logger.error(f"Unexpected error processing LUT: {e}")
             raise RuntimeError(f"Unexpected error processing LUT: {e}") from e
 
     @property

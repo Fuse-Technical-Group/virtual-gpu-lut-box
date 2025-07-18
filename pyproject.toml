@@ -94,6 +94,7 @@ select = [
     "TCH", # flake8-type-checking
     "TID", # flake8-tidy-imports
     "RET", # flake8-return
+    "UP032", # f-string usage
 ]
 ignore = [
     "E501",  # line too long, handled by formatter

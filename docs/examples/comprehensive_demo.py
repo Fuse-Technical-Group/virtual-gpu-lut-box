@@ -196,7 +196,7 @@ def example_opengradeio_workflow() -> None:
     print_info("5. GPU shaders can sample the LUT for color grading")
     
     print_step("To use OpenGradeIO integration in practice:")
-    print_info("• Start server: virtual-gpu-lut-box listen --verbose")
+    print_info("• Start server: virtual-gpu-lut-box --verbose")
     print_info("• Configure OpenGradeIO to connect to 127.0.0.1:8089")
     print_info("• LUTs are automatically streamed with names: vglb-lut-{channel}")
     print_info("• Multiple channels/instances are supported simultaneously")
