@@ -57,7 +57,7 @@ def format(ctx: Context) -> None:
 @task
 def lint(ctx: Context, fix: bool = False) -> None:
     """Run linting with ruff.
-    
+
     Args:
         fix: Automatically fix fixable issues (default: False)
     """
@@ -82,20 +82,20 @@ def typecheck(ctx: Context) -> None:
 def check_patterns(ctx: Context) -> None:
     """Check for banned code patterns."""
     print("🔍 Checking for banned code patterns...")
-    
+
     # Check for contextlib.suppress(Exception) patterns
     result = ctx.run("grep -r 'contextlib.suppress(Exception)' src/ || true", hide=True)
     if result.stdout.strip():
         print("❌ Found banned contextlib.suppress(Exception) patterns:")
         print(result.stdout)
         raise SystemExit(1)
-    
+
     result = ctx.run("grep -r 'contextlib.suppress.*Exception' src/ || true", hide=True)
     if result.stdout.strip():
         print("❌ Found potential contextlib.suppress with broad exceptions:")
         print(result.stdout)
         raise SystemExit(1)
-    
+
     print("✅ No banned patterns found")
 
 

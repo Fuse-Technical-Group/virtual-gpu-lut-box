@@ -15,6 +15,14 @@ A cross-platform Python package for streaming color correction LUTs from OpenGra
 
 ## Installation
 
+### Using uv (Recommended)
+
+```bash
+uv add virtual-gpu-lut-box
+```
+
+### Using pip
+
 ```bash
 pip install virtual-gpu-lut-box
 ```
@@ -23,6 +31,10 @@ pip install virtual-gpu-lut-box
 
 For development (includes linting, testing, building tools):
 ```bash
+# With uv (recommended)
+uv sync --extra dev
+
+# Or with pip
 pip install virtual-gpu-lut-box[dev]
 ```
 
@@ -37,18 +49,18 @@ pip install virtual-gpu-lut-box[dev]
 Start OpenGradeIO network server:
 ```bash
 # Listen for OpenGradeIO connections with default settings
-virtual-gpu-lut-box
+uv run virtual-gpu-lut-box
 
 # Custom configuration
-virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
+uv run virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
 
 # Custom base stream name for OpenGradeIO LUTs
-virtual-gpu-lut-box --stream-name "MyProject-LUT" --verbose
+uv run virtual-gpu-lut-box --stream-name "MyProject-LUT" --verbose
 ```
 
 Check platform support and system information:
 ```bash
-virtual-gpu-lut-box --info
+uv run virtual-gpu-lut-box --info
 ```
 
 ### Python API
@@ -131,7 +143,7 @@ uv sync --extra dev
 pip install -e ".[dev]"
 
 # Or use invoke for automated setup
-invoke dev-setup
+uv run invoke dev-setup
 ```
 
 ### Development Tasks
@@ -140,22 +152,22 @@ This project uses [Invoke](https://pyinvoke.org/) for task automation. See [TASK
 
 ```bash
 # Run all quality checks
-invoke quality
+uv run invoke quality
 
 # Build the package
-invoke build
+uv run invoke build
 
 # Run complete CI/CD pipeline
-invoke all
+uv run invoke all
 
 # Format and lint code
-invoke format lint
+uv run invoke format lint
 
 # Run tests with coverage
-invoke test
+uv run invoke test
 
 # Type checking with Pyright
-invoke typecheck
+uv run invoke typecheck
 ```
 
 ### Code Quality
@@ -172,22 +184,22 @@ The project uses modern Python tooling:
 
 ```bash
 # Testing
-pytest
+uv run pytest
 
 # Linting and formatting
-ruff check src tests
-ruff format src tests
+uv run ruff check src tests
+uv run ruff format src tests
 
 # Type checking
-pyright
+uv run pyright
 
 # Building
-python -m build
+uv run python -m build
 ```
 
 ## OpenGradeIO Workflow
 
-1. **Start Server**: `virtual-gpu-lut-box`
+1. **Start Server**: `uv run virtual-gpu-lut-box`
 2. **Configure OpenGradeIO**: Set virtual LUT box to `127.0.0.1:8089`
 3. **Apply LUTs**: LUTs are automatically texture streamed to `vglb-lut-{channel}`
 4. **GPU Integration**: Consume the LUT in Hald format in your rendering/compositing application
@@ -205,7 +217,7 @@ The server supports:
 2. Create a feature branch
 3. Make your changes
 4. Add tests
-5. Run the test suite (`invoke quality`)
+5. Run the test suite (`uv run invoke quality`)
 6. Submit a pull request
 
 ## License

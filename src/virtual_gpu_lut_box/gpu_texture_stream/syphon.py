@@ -21,6 +21,44 @@ try:
 except ImportError:
     Metal = None  # type: ignore[assignment]
 
+# Message elision for quiet mode - track repeated messages
+_message_counts: dict[str, int] = {}
+_last_message_time: dict[str, float] = {}
+
+
+def _should_show_message(message: str, quiet_mode: bool = True) -> bool:
+    """Determine if a repeated message should be shown based on quiet mode and frequency."""
+    if not quiet_mode:
+        return True
+
+    current_time = time.time()
+
+    # Always show first occurrence
+    if message not in _message_counts:
+        _message_counts[message] = 1
+        _last_message_time[message] = current_time
+        return True
+
+    _message_counts[message] += 1
+    time_since_last = current_time - _last_message_time[message]
+
+    # Show every 10th message or after 5 seconds, whichever comes first
+    if _message_counts[message] % 10 == 0 or time_since_last >= 5.0:
+        _last_message_time[message] = current_time
+        return True
+
+    return False
+
+
+def _elided_print(message: str, quiet_mode: bool = True) -> None:
+    """Print a message with elision logic for quiet mode."""
+    if _should_show_message(message, quiet_mode):
+        count = _message_counts.get(message, 0)
+        if count > 1:
+            print(f"{message} ({count} times)")
+        else:
+            print(message)
+
 
 class SyphonBackend(StreamingBackend):
     """macOS Syphon streaming backend using Metal."""
@@ -91,7 +129,9 @@ class SyphonBackend(StreamingBackend):
                 if self._device is not None:
                     print(f"📱 Metal device: {self._device.name()}")
             else:
-                raise InitializationError(f"Failed to create Syphon Metal server '{self.name}'")
+                raise InitializationError(
+                    f"Failed to create Syphon Metal server '{self.name}'"
+                )
 
         except Exception as e:
             raise InitializationError(f"Failed to initialize Syphon Metal: {e}") from e
@@ -128,9 +168,7 @@ class SyphonBackend(StreamingBackend):
                 fps = (
                     self._frame_count - (getattr(self, "_last_frame_count", 0))
                 ) / elapsed
-                print(
-                    f"📊 Syphon Metal streaming: {fps:.1f} FPS"
-                )
+                _elided_print(f"📊 Syphon Metal streaming: {fps:.1f} FPS")
                 self._last_frame_count = self._frame_count
                 self._last_fps_check = current_time
 
@@ -163,8 +201,6 @@ class SyphonBackend(StreamingBackend):
         """
         return ["rgb", "rgba", "bgr", "bgra"]
 
-
-
     def send_lut_texture(self, hald_image: np.ndarray) -> None:
         """Send LUT texture data with full precision preservation.
 
@@ -195,8 +231,6 @@ class SyphonBackend(StreamingBackend):
 
         # Send texture directly without any format conversion
         self.send_texture(hald_image)
-
-
 
     def _init_metal(self) -> None:
         """Initialize Metal device and command queue.
@@ -254,14 +288,16 @@ class SyphonBackend(StreamingBackend):
                 alpha = np.full((height, width, 1), 1.0, dtype=np.float32)
                 final_data = np.concatenate([texture_data, alpha], axis=2)
                 pixel_format = Metal.MTLPixelFormatRGBA32Float
-                print(
+                _elided_print(
                     "🎯 Using RGBA32Float with dummy alpha for RGB data (full precision)"
                 )
             elif channels == 4:
                 # Use RGBA format directly
                 final_data = np.ascontiguousarray(texture_data)
                 pixel_format = Metal.MTLPixelFormatRGBA32Float
-                print("🎯 Using RGBA32Float with actual alpha data (full precision)")
+                _elided_print(
+                    "🎯 Using RGBA32Float with actual alpha data (full precision)"
+                )
             else:
                 raise TextureFormatError(
                     f"Unsupported channel count: {channels}. "
@@ -298,4 +334,3 @@ class SyphonBackend(StreamingBackend):
 
         except Exception as e:
             raise StreamingError(f"Metal texture creation failed: {e}") from e
-

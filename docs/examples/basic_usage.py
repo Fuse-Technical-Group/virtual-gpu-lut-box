@@ -4,8 +4,8 @@
 import numpy as np
 
 import vglb
-from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 from virtual_gpu_lut_box.gpu_texture_stream.factory import StreamingFactory
+from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 
 def example_hald_conversion():
@@ -14,7 +14,7 @@ def example_hald_conversion():
 
     # Create a simple test LUT (identity LUT with some modifications)
     lut_size = 33
-    
+
     # Create identity LUT
     identity_lut = np.zeros((lut_size, lut_size, lut_size, 3), dtype=np.float32)
     for r in range(lut_size):
@@ -23,11 +23,11 @@ def example_hald_conversion():
                 identity_lut[r, g, b, 0] = r / (lut_size - 1)  # R
                 identity_lut[r, g, b, 1] = g / (lut_size - 1)  # G
                 identity_lut[r, g, b, 2] = b / (lut_size - 1)  # B
-    
+
     # Apply simple gamma correction
     gamma = 2.2
     lut = np.power(identity_lut, 1.0 / gamma)
-    
+
     print(f"Generated LUT shape: {lut.shape}")
     print(f"LUT range: [{lut.min():.3f}, {lut.max():.3f}]")
 
@@ -88,7 +88,7 @@ def example_streaming_setup():
                             lut[r, g, b, 0] = r / (lut_size - 1)  # R
                             lut[r, g, b, 1] = g / (lut_size - 1)  # G
                             lut[r, g, b, 2] = b / (lut_size - 1)  # B
-                
+
                 # Apply gamma correction
                 lut = np.power(lut, 1.0 / 2.2)
 
@@ -132,7 +132,7 @@ def example_streaming_setup():
 def example_opengradeio_integration():
     """Example: OpenGradeIO network integration."""
     print("\n=== OpenGradeIO Integration Example ===")
-    
+
     # This example shows how to use the OpenGradeIO network server
     print("Simple usage with vglb:")
     print("  import vglb")

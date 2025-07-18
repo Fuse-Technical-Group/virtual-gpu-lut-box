@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -18,6 +19,10 @@ from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 logger = logging.getLogger(__name__)
 
+# Message elision for quiet mode - track repeated messages
+_message_counts: dict[str, int] = {}
+_last_message_time: dict[str, float] = {}
+
 
 class OpenGradeIOLUTStreamer:
     """Integrate OpenGradeIO LUT data with GPU streaming."""
@@ -25,17 +30,45 @@ class OpenGradeIOLUTStreamer:
     def __init__(
         self,
         stream_name: str = "OpenGradeIO-LUT",
+        quiet_mode: bool = True,
     ) -> None:
         """Initialize LUT streamer.
 
         Args:
             stream_name: Name for the Spout/Syphon stream
+            quiet_mode: Enable quiet mode (elide repeated messages)
         """
         self.stream_name = stream_name
+        self.quiet_mode = quiet_mode
         self._converter: HaldConverter | None = None
         self._streamer: object | None = None
         self._current_lut_size: int | None = None
         self._is_streaming = False
+
+    def _elided_print(self, message: str) -> None:
+        """Print a message with elision logic for quiet mode."""
+        if not self.quiet_mode:
+            print(message)
+            return
+
+        current_time = time.time()
+
+        # Always show first occurrence
+        if message not in _message_counts:
+            _message_counts[message] = 1
+            _last_message_time[message] = current_time
+            print(message)
+            return
+
+        _message_counts[message] += 1
+        time_since_last = current_time - _last_message_time[message]
+
+        # Show every 10th message or after 5 seconds, whichever comes first
+        if _message_counts[message] % 10 == 0 or time_since_last >= 5.0:
+            _last_message_time[message] = current_time
+            count = _message_counts[message]
+            print(f"{message} ({count} times)")
+            return
 
     def _ensure_streaming_backend(
         self, lut_size: int, stream_name: str | None = None
@@ -187,8 +220,12 @@ class OpenGradeIOLUTStreamer:
                 self._streamer.send_lut_texture(hald_image)  # type: ignore[attr-defined]
 
                 effective_name = stream_name or self.stream_name
-                # Show essential streaming success info - always show
-                print(f"🎯 Streamed {lut_size}³ LUT to '{effective_name}'")
+                # Show essential streaming success info - elide in quiet mode
+                message = f"🎯 Streamed {lut_size}³ LUT to '{effective_name}'"
+                if self.quiet_mode:
+                    self._elided_print(message)
+                else:
+                    print(message)
                 return True
 
             except Exception as e:

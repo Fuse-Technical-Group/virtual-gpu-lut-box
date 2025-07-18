@@ -5,11 +5,13 @@ from __future__ import annotations
 import logging
 import socket
 import threading
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import bson
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 else:
     pass
@@ -127,7 +129,7 @@ class OpenGradeIOServer:
                         t for t in self._client_threads if t.is_alive()
                     ]
 
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 except Exception as e:
                     if self._running:
@@ -229,7 +231,7 @@ class OpenGradeIOServer:
             for key, value in arguments.items():
                 if key == "lutData":
                     logger.debug(
-                        f"  {key}: <binary data, {len(value) if isinstance(value, (bytes, bytearray)) else 'unknown'} bytes>"
+                        f"  {key}: <binary data, {len(value) if isinstance(value, bytes | bytearray) else 'unknown'} bytes>"
                     )
                 else:
                     logger.debug(f"  {key}: {value}")

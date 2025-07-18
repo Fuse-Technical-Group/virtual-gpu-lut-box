@@ -76,7 +76,9 @@ class SpoutBackend(StreamingBackend):
             if success:
                 self._initialized = True
             else:
-                raise InitializationError(f"Failed to initialize SpoutGL sender '{self.name}'")
+                raise InitializationError(
+                    f"Failed to initialize SpoutGL sender '{self.name}'"
+                )
 
         except Exception as e:
             raise InitializationError(f"Failed to initialize SpoutGL: {e}") from e
@@ -173,8 +175,6 @@ class SpoutBackend(StreamingBackend):
             List of supported format strings
         """
         return ["rgb", "rgba", "bgr", "bgra"]
-
-
 
     def send_lut_texture(self, hald_image: np.ndarray) -> None:
         """Send LUT texture data optimized for GPU shaders.

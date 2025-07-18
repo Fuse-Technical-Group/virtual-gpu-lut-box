@@ -3,7 +3,6 @@
 
 import datetime
 import time
-from typing import Any
 
 import numpy as np
 
@@ -48,7 +47,7 @@ def print_error(message: str) -> None:
 def create_identity_lut(lut_size: int) -> np.ndarray:
     """Create an identity LUT of given size."""
     print_step(f"Creating {lut_size}x{lut_size}x{lut_size} identity LUT")
-    
+
     lut = np.zeros((lut_size, lut_size, lut_size, 3), dtype=np.float32)
     for r in range(lut_size):
         for g in range(lut_size):
@@ -56,7 +55,7 @@ def create_identity_lut(lut_size: int) -> np.ndarray:
                 lut[r, g, b, 0] = r / (lut_size - 1)  # R
                 lut[r, g, b, 1] = g / (lut_size - 1)  # G
                 lut[r, g, b, 2] = b / (lut_size - 1)  # B
-    
+
     print_success(f"Identity LUT created with shape {lut.shape}")
     return lut
 
@@ -186,7 +185,7 @@ def example_streaming_setup() -> None:
 def example_opengradeio_workflow() -> None:
     """Example: OpenGradeIO workflow demonstration."""
     print_section("OpenGradeIO Integration Workflow")
-    
+
     print_step("Setting up OpenGradeIO integration")
     print_info("This demo shows the complete OpenGradeIO to GPU workflow:")
     print_info("1. OpenGradeIO sends LUT data via BSON over TCP")
@@ -194,48 +193,48 @@ def example_opengradeio_workflow() -> None:
     print_info("3. LUT is converted to Hald image format")
     print_info("4. Hald image is streamed to GPU via Syphon/Spout")
     print_info("5. GPU shaders can sample the LUT for color grading")
-    
+
     print_step("To use OpenGradeIO integration in practice:")
     print_info("• Start server: virtual-gpu-lut-box --verbose")
     print_info("• Configure OpenGradeIO to connect to 127.0.0.1:8089")
     print_info("• LUTs are automatically streamed with names: vglb-lut-{channel}")
     print_info("• Multiple channels/instances are supported simultaneously")
     print_info("• 32-bit float precision is preserved throughout the pipeline")
-    
+
     print_success("OpenGradeIO integration workflow explained")
 
 
 def example_performance_testing() -> None:
     """Example: Performance testing and optimization."""
     print_section("Performance Testing")
-    
+
     print_step("Testing different LUT sizes")
-    
+
     lut_sizes = [16, 33, 64]
     for lut_size in lut_sizes:
         print_step(f"Testing {lut_size}x{lut_size}x{lut_size} LUT")
-        
+
         # Time LUT creation
         start_time = time.time()
         lut = create_identity_lut(lut_size)
         lut_time = time.time() - start_time
-        
+
         # Time Hald conversion
         start_time = time.time()
         converter = HaldConverter(lut_size=lut_size)
         hald_image = converter.lut_to_hald(lut)
         hald_time = time.time() - start_time
-        
+
         # Calculate memory usage
         lut_memory = lut.nbytes / (1024 * 1024)  # MB
         hald_memory = hald_image.nbytes / (1024 * 1024)  # MB
-        
+
         print_info(f"  LUT creation: {lut_time:.4f}s")
         print_info(f"  Hald conversion: {hald_time:.4f}s")
         print_info(f"  LUT memory: {lut_memory:.2f} MB")
         print_info(f"  Hald memory: {hald_memory:.2f} MB")
         print_info(f"  Hald dimensions: {hald_image.shape[1]}x{hald_image.shape[0]}")
-    
+
     print_success("Performance testing completed")
 
 

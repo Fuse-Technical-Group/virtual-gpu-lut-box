@@ -13,7 +13,9 @@ from .server import VirtualGPULUTBoxServer
 
 @click.command()
 @click.option("--host", default="127.0.0.1", help="Server host address")
-@click.option("--port", default=VirtualGPULUTBoxServer.DEFAULT_PORT, help="Server port number")
+@click.option(
+    "--port", default=VirtualGPULUTBoxServer.DEFAULT_PORT, help="Server port number"
+)
 @click.option(
     "--stream-name",
     default="OpenGradeIO-LUT",
@@ -48,20 +50,29 @@ def show_system_info() -> None:
     """Show system and platform information."""
     try:
         platform_info = VirtualGPULUTBoxServer.get_platform_info()
-        
+
         # Show basic platform info
         click.echo("System Information:")
         for key, value in platform_info.items():
-            if key not in ["current_platform", "available_backends", "platform_supported", "supported_formats"]:
+            if key not in [
+                "current_platform",
+                "available_backends",
+                "platform_supported",
+                "supported_formats",
+            ]:
                 click.echo(f"  {key}: {value}")
 
         # Show streaming-specific info
         click.echo(f"\nCurrent platform: {platform_info['current_platform']}")
-        click.echo(f"Available backends: {', '.join(platform_info['available_backends'])}")
+        click.echo(
+            f"Available backends: {', '.join(platform_info['available_backends'])}"
+        )
         click.echo(f"Platform supported: {platform_info['platform_supported']}")
 
-        if platform_info['platform_supported']:
-            click.echo(f"Supported formats: {', '.join(platform_info['supported_formats'])}")
+        if platform_info["platform_supported"]:
+            click.echo(
+                f"Supported formats: {', '.join(platform_info['supported_formats'])}"
+            )
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
@@ -77,7 +88,7 @@ def start_server_cli(
 ) -> None:
     """Start virtual LUT box server via CLI."""
     server = None
-    
+
     try:
         # Create and start server
         server = VirtualGPULUTBoxServer(
@@ -88,7 +99,7 @@ def start_server_cli(
             info_logging=info_logging,
         )
         server.start()
-        
+
         # Handle server lifetime in CLI
         try:
             click.echo("🔄 Server running. Press Ctrl+C to stop.")
@@ -96,7 +107,7 @@ def start_server_cli(
                 time.sleep(0.1)
         except KeyboardInterrupt:
             click.echo("🛑 Stopping server...")
-            
+
     except PlatformNotSupportedError as e:
         click.echo(f"Platform error: {e}", err=True)
         click.echo("GPU texture streaming not supported on this platform")

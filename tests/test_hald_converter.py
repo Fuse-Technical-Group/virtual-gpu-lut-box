@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from virtual_gpu_lut_box.lut.generator import LUTGenerator
 from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 
@@ -69,9 +68,14 @@ class TestHaldConverter:
         """Test LUT to Hald and back conversion."""
         converter = HaldConverter(3)
 
-        # Create test LUT
-        generator = LUTGenerator(3)
-        original_lut = generator.identity_lut
+        # Create test identity LUT manually
+        original_lut = np.zeros((3, 3, 3, 3), dtype=np.float32)
+        for r in range(3):
+            for g in range(3):
+                for b in range(3):
+                    original_lut[r, g, b, 0] = r / 2.0  # Red channel
+                    original_lut[r, g, b, 1] = g / 2.0  # Green channel
+                    original_lut[r, g, b, 2] = b / 2.0  # Blue channel
 
         # Convert to Hald and back
         hald = converter.lut_to_hald(original_lut)
@@ -254,10 +258,15 @@ class TestHaldConverter:
     def test_33x33x33_lut_conversion(self) -> None:
         """Test conversion with production-size 33x33x33 LUT."""
         converter = HaldConverter(33)
-        generator = LUTGenerator(33)
 
-        # Create a custom LUT
-        lut = generator.create_custom_lut(gamma=2.2, brightness=0.1)
+        # Create a test LUT with gradient values
+        lut = np.zeros((33, 33, 33, 3), dtype=np.float32)
+        for r in range(33):
+            for g in range(33):
+                for b in range(33):
+                    lut[r, g, b, 0] = r / 32.0  # Red channel
+                    lut[r, g, b, 1] = g / 32.0  # Green channel
+                    lut[r, g, b, 2] = b / 32.0  # Blue channel
 
         # Convert to Hald
         hald = converter.lut_to_hald(lut)
