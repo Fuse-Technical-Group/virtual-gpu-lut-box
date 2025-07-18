@@ -79,6 +79,22 @@ def typecheck(ctx: Context) -> None:
 
 
 @task
+def spell(ctx: Context, fix: bool = False) -> None:
+    """Run spell checking with cspell.
+
+    Args:
+        fix: Interactively fix spelling issues (default: False)
+    """
+    print("📝 Spell checking with cspell...")
+    cmd = "npx cspell --config .cspell.json '**/*.{py,md,yml,yaml,json,txt,rst}'"
+    if fix:
+        cmd += " --interactive"
+        print("  Interactive mode enabled")
+    ctx.run(cmd)
+    print("✅ Spell checking completed")
+
+
+@task
 def check_patterns(ctx: Context) -> None:
     """Check for banned code patterns."""
     print("🔍 Checking for banned code patterns...")
@@ -123,9 +139,9 @@ def test(ctx: Context, coverage: bool = True, verbose: bool = False) -> None:
     print("✅ Tests completed")
 
 
-@task(pre=[format, lint, typecheck, check_patterns, test])
+@task(pre=[format, lint, typecheck, spell, check_patterns, test])
 def quality(_: Context) -> None:
-    """Run all quality checks: format, lint, typecheck, pattern check, and test."""
+    """Run all quality checks: format, lint, typecheck, spell check, pattern check, and test."""
     print("🎯 All quality checks completed successfully!")
 
 
@@ -363,6 +379,7 @@ if __name__ == "__main__":
         print("  invoke format     - Format code")
         print("  invoke lint       - Run linting")
         print("  invoke typecheck  - Run type checking")
+        print("  invoke spell      - Run spell checking")
         print("  invoke test       - Run tests")
         print("  invoke quality    - Run all quality checks")
         print("  invoke build      - Build package")

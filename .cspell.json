@@ -1,0 +1,105 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Anthropic",
+    "BGRA",
+    "BSON",
+    "GPULUT",
+    "Hald",
+    "OpenGradeIO",
+    "PyPI",
+    "Pyright",
+    "RGBA",
+    "Spout",
+    "Syphon",
+    "arraylike",
+    "ascontiguousarray",
+    "codebase",
+    "dlut",
+    "dtype",
+    "endian",
+    "framebuffer",
+    "frombuffer",
+    "isfinite",
+    "kwargs",
+    "lut",
+    "luts",
+    "mypy",
+    "nbytes",
+    "ndarray",
+    "numpy",
+    "pycache",
+    "pyproject",
+    "pyright",
+    "pytest",
+    "repr",
+    "streamer",
+    "streamers",
+    "tobytes",
+    "toml",
+    "uint",
+    "uv",
+    "venv",
+    "vglb"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "build/**",
+    "*.egg-info/**",
+    ".pytest_cache/**",
+    ".mypy_cache/**",
+    ".ruff_cache/**",
+    "htmlcov/**",
+    "__pycache__/**",
+    ".venv/**",
+    ".uv/**"
+  ],
+  "ignoreWords": [
+    "FIXME",
+    "TODO",
+    "XXX"
+  ],
+  "allowCompoundWords": true,
+  "caseSensitive": false,
+  "flagWords": [],
+  "overrides": [
+    {
+      "filename": "**/*.py",
+      "words": [
+        "args",
+        "ctx",
+        "kwargs",
+        "ndarray",
+        "param",
+        "params",
+        "pycache",
+        "repr",
+        "str",
+        "venv"
+      ]
+    },
+    {
+      "filename": "**/*.md",
+      "words": [
+        "API",
+        "CLI",
+        "GPU",
+        "LUT",
+        "README"
+      ]
+    },
+    {
+      "filename": "**/test_*.py",
+      "words": [
+        "fixture",
+        "fixtures",
+        "mock",
+        "mocks",
+        "parametrize"
+      ]
+    }
+  ]
+}
