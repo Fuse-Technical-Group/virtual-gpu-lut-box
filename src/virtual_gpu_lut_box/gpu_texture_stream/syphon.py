@@ -274,7 +274,7 @@ class SyphonBackend(StreamingBackend):
             # Prepare texture data
             height, width, channels = texture_data.shape
 
-            # Validate that we only support float32 (no 8-bit conversion)
+            # Validate that we only support float32 for precision preservation
             if texture_data.dtype != np.float32:
                 raise TextureFormatError(
                     f"Unsupported texture data type: {texture_data.dtype}. "

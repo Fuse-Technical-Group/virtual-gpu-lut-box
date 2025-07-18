@@ -158,11 +158,8 @@ class StreamingBackend(ABC):
             raise ValueError(f"Expected RGBA input (4 channels), got {channels}")
 
         # Keep data in original format for processing to preserve precision
-        if texture_data.dtype == np.uint8:
-            data = texture_data.astype(np.float32) / 255.0
-        else:
-            # Keep float32 data as-is to preserve full precision
-            data = texture_data.copy()
+        # Only float32 is supported for precision preservation
+        data = texture_data.copy()
 
         # Handle format conversion
         target_format = target_format.lower()

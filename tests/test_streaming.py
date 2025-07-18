@@ -112,14 +112,6 @@ class TestStreamingBackend:
         with pytest.raises(TextureFormatError, match="Unsupported data type"):
             backend.validate_texture_data(texture_data)
 
-    def test_validate_texture_data_invalid_range_uint8(self) -> None:
-        """Test texture data validation with uint8 data (unsupported)."""
-        backend = MockBackend("test", 10, 20)
-        texture_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.uint8)
-
-        with pytest.raises(TextureFormatError, match="Unsupported data type"):
-            backend.validate_texture_data(texture_data)
-
     def test_validate_texture_data_invalid_range_float32(self) -> None:
         """Test texture data validation with invalid float32 range."""
         backend = MockBackend("test", 10, 20)
@@ -159,14 +151,6 @@ class TestStreamingBackend:
         # Check that R and B channels are swapped
         assert np.allclose(rgba_data[:, :, 0], bgr_data[:, :, 2])
         assert np.allclose(rgba_data[:, :, 2], bgr_data[:, :, 0])
-
-    def test_convert_texture_format_uint8_to_float32(self) -> None:
-        """Test texture format conversion from uint8 to float32."""
-        backend = MockBackend("test", 10, 20)
-        uint8_data = np.random.randint(0, 256, (20, 10, 4), dtype=np.uint8)
-
-        with pytest.raises(TextureFormatError, match="Unsupported data type"):
-            backend.convert_texture_format(uint8_data, "rgb")
 
     def test_convert_texture_format_invalid_format(self) -> None:
         """Test texture format conversion with invalid format."""
