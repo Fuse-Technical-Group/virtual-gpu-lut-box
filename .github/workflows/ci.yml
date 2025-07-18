@@ -148,7 +148,7 @@ jobs:
 
     - name: Test package import
       run: |
-        python -c "from virtual_gpu_lut_box import HaldConverter, StreamingFactory; print('Import successful')"
+        python -c "from virtual_gpu_lut_box import VirtualGPULUTBoxServer; print('Import successful')"
 
   security:
     runs-on: macos-latest
@@ -195,14 +195,14 @@ jobs:
       run: |
         mkdir -p docs
         python -c "
-        from virtual_gpu_lut_box import HaldConverter, StreamingFactory
+        from virtual_gpu_lut_box import VirtualGPULUTBoxServer
         import inspect
 
         # Generate basic API documentation
         with open('docs/api.md', 'w') as f:
             f.write('# API Documentation\n\n')
 
-            classes = [HaldConverter, StreamingFactory]
+            classes = [VirtualGPULUTBoxServer]
             for cls in classes:
                 f.write(f'## {cls.__name__}\n\n')
                 f.write(f'{cls.__doc__ or \"No documentation available.\"}\n\n')

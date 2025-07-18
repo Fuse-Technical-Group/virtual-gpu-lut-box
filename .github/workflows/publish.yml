@@ -59,4 +59,4 @@ jobs:
 
     - name: Test package import
       run: |
-        python -c "from virtual_gpu_lut_box import HaldConverter, StreamingFactory; print('PyPI install successful')"
+        python -c "from virtual_gpu_lut_box import VirtualGPULUTBoxServer; print('PyPI install successful')"
