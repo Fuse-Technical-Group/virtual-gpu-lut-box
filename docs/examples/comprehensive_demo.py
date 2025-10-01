@@ -6,7 +6,8 @@ import time
 
 import numpy as np
 
-from virtual_gpu_lut_box import HaldConverter, StreamingFactory
+from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
+from virtual_gpu_lut_box.gpu_texture_stream.factory import StreamingFactory
 
 
 def format_timestamp() -> str:
