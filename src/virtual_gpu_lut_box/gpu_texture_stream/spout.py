@@ -279,16 +279,16 @@ class SpoutBackend(StreamingBackend):
 
     def cleanup(self) -> None:
         """Clean up SpoutGL and OpenGL resources."""
-        # Clean up OpenGL texture
-        if self._texture is not None and GL is not None:
-            try:
-                GL.glDeleteTextures([self._texture])
-            except Exception as e:
-                print(f"Warning: Error deleting OpenGL texture: {e}")
-            finally:
-                self._texture = None
+        # NOTE: We don't manually delete the OpenGL texture here because:
+        # 1. SpoutGL doesn't expose a way to make the context current during cleanup
+        # 2. glDeleteTextures() requires an active context, which may not be available
+        #    (cleanup can run on different threads, during shutdown, etc.)
+        # 3. releaseSender() destroys the OpenGL context, which automatically frees
+        #    all associated GL resources including our texture
+        # Attempting manual deletion causes harmless but noisy GL_INVALID_OPERATION errors.
+        self._texture = None
 
-        # Clean up Spout sender
+        # Clean up Spout sender (this destroys the OpenGL context and all resources)
         if self._sender is not None:
             print(f"Stopping Spout sender '{self.name}'")
             try:
