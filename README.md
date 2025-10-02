@@ -232,7 +232,7 @@ uv run python client_integrations/build_shaders.py --clean
 The project uses modern Python tooling:
 - **Pyright**: Fast, accurate type checking
 - **Ruff**: Ultra-fast Python linter and formatter
-- **CSpell**: Comprehensive spell checking for code and documentation
+- **codespell**: Comprehensive spell checking for code and documentation
 - **Bandit**: Security analysis for Python code
 - **TID Rules**: Enforced fully qualified imports for better maintainability
 - **32-bit Float Support**: Custom Metal type stubs for macOS, enforced precision preservation

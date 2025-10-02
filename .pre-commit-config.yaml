@@ -21,12 +21,11 @@ repos:
 
   - repo: local
     hooks:
-      - id: cspell
-        name: cspell
-        entry: npx cspell
+      - id: codespell
+        name: codespell
+        entry: uv run codespell
         language: system
         types: [text]
-        args: [--config, .cspell.json]
 
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.403
