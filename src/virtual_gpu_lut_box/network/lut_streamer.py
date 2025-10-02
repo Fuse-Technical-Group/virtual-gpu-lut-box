@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -204,9 +203,13 @@ class OpenGradeIOLUTStreamer:
                     last_size = _lut_state.get(effective_name)
                     if last_size != lut_size:
                         if last_size is None:
-                            print(f"🎯 Started streaming {lut_size}³ LUT to '{effective_name}'")
+                            print(
+                                f"🎯 Started streaming {lut_size}³ LUT to '{effective_name}'"
+                            )
                         else:
-                            print(f"🎯 LUT size changed: {last_size}³ → {lut_size}³ ('{effective_name}')")
+                            print(
+                                f"🎯 LUT size changed: {last_size}³ → {lut_size}³ ('{effective_name}')"
+                            )
                         _lut_state[effective_name] = lut_size
                 else:
                     # Verbose mode - show every stream

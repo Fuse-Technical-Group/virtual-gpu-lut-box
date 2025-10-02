@@ -19,7 +19,7 @@ class TestOpenGradeIOServer:
         """Test server initialization with default values."""
         server = OpenGradeIOServer()
 
-        assert server.host == "127.0.0.1"
+        assert server.host == "0.0.0.0"  # noqa: S104
         assert server.port == 8089
         assert server.lut_callback is None
         assert server.protocol is not None
@@ -66,7 +66,7 @@ class TestOpenGradeIOServer:
         mock_socket.setsockopt.assert_called_with(
             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1
         )
-        mock_socket.bind.assert_called_with(("127.0.0.1", 8089))
+        mock_socket.bind.assert_called_with(("0.0.0.0", 8089))  # noqa: S104
         mock_socket.listen.assert_called_with(5)
 
         # Stop server

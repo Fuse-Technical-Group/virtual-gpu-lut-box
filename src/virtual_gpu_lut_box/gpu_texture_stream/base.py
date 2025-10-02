@@ -15,13 +15,16 @@ import numpy as np
 class StreamingBackend(ABC):
     """Abstract base class for texture streaming backends."""
 
-    def __init__(self, name: str, width: int, height: int) -> None:
+    def __init__(
+        self, name: str, width: int, height: int, quiet_mode: bool = True
+    ) -> None:
         """Initialize streaming backend.
 
         Args:
             name: Name identifier for the stream
             width: Width of the texture in pixels
             height: Height of the texture in pixels
+            quiet_mode: Suppress initialization and FPS messages
         """
         self.name = name
         self.width = width

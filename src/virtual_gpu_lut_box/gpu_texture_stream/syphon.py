@@ -67,7 +67,9 @@ def _elided_print(message: str, quiet_mode: bool = True) -> None:
 class SyphonBackend(StreamingBackend):
     """macOS Syphon streaming backend using Metal."""
 
-    def __init__(self, name: str, width: int, height: int, quiet_mode: bool = True) -> None:
+    def __init__(
+        self, name: str, width: int, height: int, quiet_mode: bool = True
+    ) -> None:
         """Initialize Syphon backend.
 
         Args:

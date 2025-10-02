@@ -56,7 +56,11 @@ class TestCLI:
 
         assert result.exit_code == 0
         mock_start_server.assert_called_once_with(
-            "127.0.0.1", 8089, "OpenGradeIO-LUT", False, False
+            "0.0.0.0",  # noqa: S104
+            8089,
+            "OpenGradeIO-LUT",
+            False,
+            False,
         )
 
     @patch("virtual_gpu_lut_box.cli.start_server_cli")

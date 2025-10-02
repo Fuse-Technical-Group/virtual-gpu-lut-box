@@ -27,7 +27,7 @@ class TestVirtualGPULUTBoxServer:
 
             server = VirtualGPULUTBoxServer()
 
-            assert server.host == "127.0.0.1"
+            assert server.host == "0.0.0.0"  # noqa: S104
             assert server.port == 8089  # DEFAULT_PORT
             assert server.stream_name == "OpenGradeIO-LUT"
             assert server.verbose is False
