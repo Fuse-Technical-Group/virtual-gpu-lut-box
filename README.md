@@ -1,6 +1,6 @@
 # Virtual GPU LUT Box
 
-A cross-platform Python package for streaming color correction LUTs from OpenGradeIO to GPU shaders via Spout (Windows) and Syphon (macOS). Focused on precision-preserving network-to-GPU LUT streaming for professional color grading workflows.
+Enhance professional color grading workflows with a cross-platform Python package for network-to-GPU streaming of color correction LUTs from OpenGradeIO (aka Pomfort LiveGrade) to GPU LUT processors via Spout (Windows) and Syphon (macOS).
 
 ## Features
 
@@ -8,39 +8,35 @@ A cross-platform Python package for streaming color correction LUTs from OpenGra
 - **Adaptive LUT Sizes**: Support for any LUT size (16x16x16, 33x33x33, 64x64x64, etc.)
 - **Precision Preservation**: 32-bit float only - no 8-bit conversion or quantization
 - **Hald Image Conversion**: Efficient 3D→2D texture format conversion for GPU shaders
-- **Cross-Platform Streaming**: Spout on Windows, Syphon on macOS with Metal integration
+- **Cross-Platform Streaming**: Spout on Windows, Syphon on macOS
 - **Channel-Aware Streaming**: Automatic stream naming based on OpenGradeIO channels/instances
 - **HDR/Creative LUT Support**: Values outside [0,1] range preserved exactly
+- **Reference Shaders**: Easy-to-fork reference shaders implementing tetrahedral interpolation, pre-built solutions for Touch Designer and Pixera
 - **High-Performance Architecture**: Multi-process server with multi-threaded client handling for concurrent connections
 
 ## Installation
 
-### Using uv (Recommended)
+### From Source
+
+```bash
+git clone https://github.com/repentsinner/virtual-gpu-lut-box.git
+cd virtual-gpu-lut-box
+uv sync
+```
+
+### ~~Using [uv](https://docs.astral.sh/uv/getting-started/installation/) (Recommended)~~
 
 ```bash
 uv add virtual-gpu-lut-box
 ```
 
-### Using pip
+### ~~Using pip~~
 
 ```bash
 pip install virtual-gpu-lut-box
 ```
 
-### Development Dependencies
-
-For development (includes linting, testing, building tools):
-```bash
-# With uv (recommended)
-uv sync --extra dev
-
-# Or with pip
-pip install virtual-gpu-lut-box[dev]
-```
-
-**Note**: Platform-specific streaming dependencies (Spout for Windows, Syphon for macOS) are automatically installed based on your operating system.
-
-**Syphon Debug Messages**: You may see debug messages like `"SYPHON DEBUG: SyphonServer: Server deallocing, name: (null)"` - these are normal cleanup messages from the Syphon framework and can be safely ignored.
+> *Note: This package is not yet published to PyPI. Once published, it will be installable via uv add virtual-gpu-lut-box or pip install virtual-gpu-lut-box.*
 
 ## Quick Start
 
@@ -63,9 +59,83 @@ Check platform support and system information:
 uv run virtual-gpu-lut-box --info
 ```
 
-### Python API
+## Client Integration Shaders
 
-#### OpenGradeIO Network Server
+Pre-built GLSL shaders with tetrahedral interpolation for professional color accuracy:
+
+### TouchDesigner
+- **File**: `client_integrations/td_hald_lut.glsl`
+- **Platforms**: Windows (Spout), macOS (Syphon)
+- Standard GLSL TOP shader with auto-detected LUT size
+- **[Setup Guide](client_integrations/TD_SETUP_GUIDE.md)**
+
+### Pixera
+- **File**: `client_integrations/pixera_hald_lut.glsl`
+- **Platforms**: Windows (Spout)
+- Struct-based shader format for Pixera media server
+- **[Setup Guide](client_integrations/PIXERA_SETUP_GUIDE.md)**
+
+**Quick Workflow:**
+1. Start server: `uv run virtual-gpu-lut-box`
+2. Load shader into your application
+3. Connect inputs: (1) your content, (2) Spout/Syphon receiving LUT stream
+4. Point OpenGradeIO-compatible grading software to `[hostname]:8089`
+
+## Platform Support
+
+| Platform | Streaming Backend | Precision | Format Support | Status |
+|----------|------------------|-----------|----------------|--------|
+| Windows  | Spout            | 32-bit float only | RGB/RGBA | ✅ Supported |
+| macOS    | Syphon           | 32-bit float only | RGB/RGBA (Metal) | ✅ Supported |
+| Linux    | None             | N/A | N/A | ❌ Not supported |\
+
+# Development
+
+## Architecture
+
+### Components
+
+- **HaldConverter**: Converts 3D LUTs to 2D Hald image format for GPU consumption. Note that OpenGL texture orientation is different from numpy orientation
+- **StreamingFactory**: Platform-aware factory with lazy initialization and size adaptation
+- **SpoutBackend**: Windows Spout streaming with 32-bit float precision support
+- **SyphonBackend**: macOS Syphon streaming with Metal integration and 32-bit float textures
+- **OpenGradeIOServer**: TCP server for OpenGradeIO BSON protocol
+- **OpenGradeIOLUTStreamer**: Integration layer with channel-aware streaming
+
+### LUT Format and Precision
+
+The package supports any cubic LUT size with automatic Hald image calculation:
+- **33x33x33 LUT**: 1089x33 Hald image (35,937 entries) - Standard
+- **64x64x64 LUT**: 4096x64 Hald image (262,144 entries) - High precision
+- **Format**: 32-bit float only (RGB or RGBA) for maximum precision
+- **Range**: Supports HDR/creative LUTs with values outside [0,1] range
+
+### OpenGradeIO Integration
+
+- **BSON Protocol**: Full support for OpenGradeIO virtual LUT box protocol
+- **Channel Awareness**: Automatic stream naming using `vglb-lut-{channel}` format
+- **Lazy Initialization**: Streaming backend adapts to incoming LUT size automatically
+- **Metadata Extraction**: Parse service, instance, and type information from messages
+- **Error Handling**: Comprehensive error handling with detailed logging
+
+## Development Dependencies
+
+For development (includes linting, testing, building tools):
+```bash
+# With uv (recommended)
+uv sync --extra dev
+
+# Or with pip
+pip install virtual-gpu-lut-box[dev]
+```
+
+**Note**: Platform-specific streaming dependencies (Spout for Windows, Syphon for macOS) are automatically installed based on your operating system.
+
+**Syphon Debug Messages**: You may see debug messages like `"SYPHON DEBUG: SyphonServer: Server deallocing, name: (null)"` - these are normal cleanup messages from the Syphon framework and can be safely ignored.
+
+## Python API
+
+### OpenGradeIO Network Server
 
 ```python
 from virtual_gpu_lut_box import OpenGradeIOServer, OpenGradeIOLUTStreamer
@@ -92,43 +162,6 @@ server = OpenGradeIOServer(
 server.start()
 # Server runs in background thread
 ```
-
-## Architecture
-
-### Components
-
-- **HaldConverter**: Converts 3D LUTs to 2D Hald image format for GPU consumption
-- **StreamingFactory**: Platform-aware factory with lazy initialization and size adaptation
-- **SpoutBackend**: Windows Spout streaming with 32-bit float precision support
-- **SyphonBackend**: macOS Syphon streaming with Metal integration and 32-bit float textures
-- **OpenGradeIOServer**: TCP server for OpenGradeIO BSON protocol
-- **OpenGradeIOLUTStreamer**: Integration layer with channel-aware streaming
-
-### LUT Format and Precision
-
-The package supports any cubic LUT size with automatic Hald image calculation:
-- **33x33x33 LUT**: 1089x33 Hald image (35,937 entries) - Standard
-- **64x64x64 LUT**: 4096x64 Hald image (262,144 entries) - High precision
-- **Format**: 32-bit float only (RGB or RGBA) for maximum precision
-- **Range**: Supports HDR/creative LUTs with values outside [0,1] range
-
-### OpenGradeIO Integration
-
-- **BSON Protocol**: Full support for OpenGradeIO virtual LUT box protocol
-- **Channel Awareness**: Automatic stream naming using `vglb-lut-{channel}` format
-- **Lazy Initialization**: Streaming backend adapts to incoming LUT size automatically
-- **Metadata Extraction**: Parse service, instance, and type information from messages
-- **Error Handling**: Comprehensive error handling with detailed logging
-
-## Platform Support
-
-| Platform | Streaming Backend | Precision | Format Support | Status |
-|----------|------------------|-----------|----------------|--------|
-| Windows  | Spout            | 32-bit float only | RGB/RGBA | ✅ Supported |
-| macOS    | Syphon           | 32-bit float only | RGB/RGBA (Metal) | ✅ Supported |
-| Linux    | None             | N/A | N/A | ❌ Not supported |
-
-## Development
 
 ### Setup
 
@@ -179,6 +212,23 @@ uv run invoke security
 uv run invoke check-patterns
 ```
 
+### Building Shaders
+
+Client integration shaders are generated from source templates:
+
+```bash
+# Build all shaders
+uv run python client_integrations/build_shaders.py
+
+# Clean generated shaders
+uv run python client_integrations/build_shaders.py --clean
+```
+
+**Sources**:
+- `client_integrations/src/hald_lut_core.glsl` - Shared tetrahedral interpolation functions
+- `client_integrations/src/*.template.glsl` - Platform-specific wrappers
+- `client_integrations/*.glsl` - Generated shaders (tracked in git)
+
 ### Code Quality
 
 The project uses modern Python tooling:
@@ -214,21 +264,6 @@ uv run bandit -r src/virtual_gpu_lut_box
 # Building
 uv run python -m build
 ```
-
-## OpenGradeIO Workflow
-
-1. **Start Server**: `uv run virtual-gpu-lut-box`
-2. **Configure OpenGradeIO**: Set virtual LUT box to `127.0.0.1:8089`
-3. **Apply LUTs**: LUTs are automatically texture streamed to `vglb-lut-{channel}`
-4. **GPU Integration**: Consume the LUT in Hald format in your rendering/compositing application
-
-The server supports:
-- Multiple concurrent channels
-- Any LUT size (16x16x16 to 64x64x64 and beyond)
-- Real-time updates
-- Automatic gpu texture stream naming based on OpenGradeIO channels
-- 32-bit float precision for professional color grading
-
 ## Contributing
 
 1. Fork the repository
@@ -248,3 +283,5 @@ BSD 3-Clause License - see LICENSE file for details.
 - [Syphon](http://syphon.v002.info/) for macOS texture sharing
 - [PyObjC](https://pyobjc.readthedocs.io/) for Metal framework integration on macOS
 - The OpenGL and GPU shader communities
+
+Happy Grading! 🎨

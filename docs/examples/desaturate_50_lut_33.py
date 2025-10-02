@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Stream a 33x33x33 desaturation LUT (50%) until a key is pressed.
+"""Stream an animated desaturation LUT that ramps between full color and grayscale.
 
-A 50% desaturation LUT blends the input colors halfway with their grayscale
-(luminance) values, creating a partially desaturated look.
+This LUT animates over 3 seconds, ramping from full saturation (0%) to
+full desaturation (100%) and back, creating a breathing color effect.
 
-This demonstrates how 3D LUTs can encode any color transformation,
-not just identity passes.
+This demonstrates real-time LUT animation - useful for creative effects,
+transitions, or testing dynamic color grading pipelines.
 
 Press Ctrl+C to exit.
 """
 
 import sys
+import time
 
 import numpy as np
 
@@ -57,33 +58,15 @@ def create_desaturation_lut(lut_size: int = 33, desaturation: float = 0.5) -> np
 
 
 def main():
-    """Stream desaturation LUT until key press."""
+    """Stream animated desaturation LUT until key press."""
     lut_size = 33
-    desaturation_amount = 0.5  # 50% desaturation
+    animation_period = 3.0  # 3 seconds per cycle
 
     print("=" * 70)
-    print(f"Desaturation LUT Streaming Test ({desaturation_amount*100:.0f}%)")
+    print("Animated Desaturation LUT Streaming Test")
     print("=" * 70)
-    print(f"\nCreating {lut_size}³ desaturation LUT...")
-
-    # Create desaturation LUT
-    lut = create_desaturation_lut(lut_size, desaturation_amount)
-    print(f"Created LUT with shape: {lut.shape}")
-    print(f"  Range: [{lut.min():.3f}, {lut.max():.3f}]")
-
-    # Debug: Check specific colors
-    print("\n  Debug - Sample LUT transformations:")
-    print(f"    Black [0,0,0] → {lut[0,0,0]} (should stay [0.0, 0.0, 0.0])")
-    print(f"    White [32,32,32] → {lut[32,32,32]} (should stay [1.0, 1.0, 1.0])")
-    print(f"    Pure Red [32,0,0] → {lut[32,0,0]} (should be desaturated red)")
-    print(f"    Pure Green [0,32,0] → {lut[0,32,0]} (should be desaturated green)")
-    print(f"    Pure Blue [0,0,32] → {lut[0,0,32]} (should be desaturated blue)")
-
-    # Convert to Hald format
-    print("\nConverting to Hald image format...")
-    converter = HaldConverter(lut_size=lut_size)
-    hald_image = converter.lut_to_hald(lut)
-    print(f"Hald image dimensions: {hald_image.shape[1]}x{hald_image.shape[0]}")
+    print(f"\nAnimation: 0% → 100% → 0% desaturation over {animation_period}s")
+    print(f"LUT size: {lut_size}³")
 
     # Create streaming backend
     print("\nInitializing streaming backend...")
@@ -100,33 +83,50 @@ def main():
         print("\nIs Spout/Syphon available on this platform?")
         sys.exit(1)
 
-    # Stream the LUT
+    # Stream the animated LUT
     print("\n" + "=" * 70)
-    print(f"Streaming {desaturation_amount*100:.0f}% Desaturation LUT")
+    print("Streaming Animated Desaturation LUT")
     print("=" * 70)
     print(f"\nStream name: '{backend.name}'")
     print("   Open your Spout/Syphon receiver (TouchDesigner, etc.)")
-    print(f"\n   With this LUT, your image should look {desaturation_amount*100:.0f}% desaturated.")
-    print("   Colors should be less vibrant, moving halfway toward grayscale.\n")
+    print(f"\n   Watch the colors breathe in and out over {animation_period}s cycles!")
+    print("   Full color → Grayscale → Full color\n")
     print("   Press Ctrl+C to stop streaming...\n")
 
     frame_count = 0
+    start_time = time.time()
+    converter = HaldConverter(lut_size=lut_size)
 
     try:
         with backend:
             # Stream continuously until interrupted
             while True:
+                # Calculate current desaturation based on elapsed time
+                elapsed = time.time() - start_time
+                cycle_position = (elapsed % animation_period) / (animation_period / 2.0)
+
+                # Triangle wave: 0→1→0 over animation_period
+                if cycle_position <= 1.0:
+                    desaturation = cycle_position  # Ramp up: 0 to 1
+                else:
+                    desaturation = 2.0 - cycle_position  # Ramp down: 1 to 0
+
+                # Generate LUT with current desaturation value
+                lut = create_desaturation_lut(lut_size, desaturation)
+                hald_image = converter.lut_to_hald(lut)
+
+                # Send to GPU
                 backend.send_lut_texture(hald_image)
                 frame_count += 1
 
-                # Progress indicator - update in place every 30 frames (~1 second)
-                if frame_count % 30 == 0:
-                    elapsed = frame_count / 30  # seconds at 30 FPS
-                    print(
-                        f"\r   Streaming... {frame_count} frames ({elapsed:.0f}s)",
-                        end="",
-                        flush=True,
-                    )
+                # Progress indicator - update every frame with current desaturation
+                print(
+                    f"\r   Streaming... {frame_count} frames | "
+                    f"Desaturation: {desaturation*100:5.1f}% | "
+                    f"Time: {elapsed:.1f}s",
+                    end="",
+                    flush=True,
+                )
 
     except KeyboardInterrupt:
         elapsed = frame_count / 30  # seconds at 30 FPS
