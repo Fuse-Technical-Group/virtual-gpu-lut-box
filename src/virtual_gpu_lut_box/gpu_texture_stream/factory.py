@@ -44,6 +44,7 @@ class StreamingFactory:
         width: int = 1089,
         height: int = 33,
         platform_name: str | None = None,
+        quiet_mode: bool = True,
     ) -> StreamingBackend:
         """Create appropriate streaming backend for current platform.
 
@@ -52,6 +53,7 @@ class StreamingFactory:
             width: Width of the texture in pixels
             height: Height of the texture in pixels
             platform_name: Override platform detection (for testing)
+            quiet_mode: Suppress initialization and diagnostic messages
 
         Returns:
             Platform-specific streaming backend
@@ -88,7 +90,7 @@ class StreamingFactory:
         # Create backend instance
         backend_class = cls._backends[platform_name]
         try:
-            backend = backend_class(name, width, height)
+            backend = backend_class(name, width, height, quiet_mode)
         except Exception as e:
             raise RuntimeError(f"Failed to create {platform_name} backend: {e}") from e
 
@@ -139,6 +141,7 @@ class StreamingFactory:
         name: str = "virtual-gpu-lut-box",
         lut_size: int = 33,
         platform_name: str | None = None,
+        quiet_mode: bool = True,
     ) -> StreamingBackend:
         """Create streaming backend optimized for LUT streaming.
 
@@ -146,6 +149,7 @@ class StreamingFactory:
             name: Name identifier for the stream
             lut_size: Size of the LUT cube (default: 33)
             platform_name: Override platform detection
+            quiet_mode: Suppress initialization and diagnostic messages
 
         Returns:
             Streaming backend configured for LUT dimensions
@@ -168,7 +172,7 @@ class StreamingFactory:
         height = lut_size  # 33
 
         try:
-            return cls.create_backend(name, width, height, platform_name)
+            return cls.create_backend(name, width, height, platform_name, quiet_mode)
         except Exception as e:
             raise RuntimeError(
                 f"Failed to create LUT streamer for {lut_size}x{lut_size}x{lut_size}: {e}"

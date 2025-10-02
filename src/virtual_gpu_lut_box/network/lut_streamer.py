@@ -23,9 +23,8 @@ from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 logger = logging.getLogger(__name__)
 
-# Message elision for quiet mode - track repeated messages
-_message_counts: dict[str, int] = {}
-_last_message_time: dict[str, float] = {}
+# Track LUT state for quiet mode - only notify on changes
+_lut_state: dict[str, int] = {}  # stream_name -> lut_size
 
 
 class OpenGradeIOLUTStreamer:
@@ -40,7 +39,7 @@ class OpenGradeIOLUTStreamer:
 
         Args:
             stream_name: Name for the Spout/Syphon stream
-            quiet_mode: Enable quiet mode (elide repeated messages)
+            quiet_mode: Enable quiet mode (only show LUT size changes)
         """
         self.stream_name = stream_name
         self.quiet_mode = quiet_mode
@@ -48,31 +47,6 @@ class OpenGradeIOLUTStreamer:
         self._streamer: object | None = None
         self._current_lut_size: int | None = None
         self._is_streaming = False
-
-    def _elided_print(self, message: str) -> None:
-        """Print a message with elision logic for quiet mode."""
-        if not self.quiet_mode:
-            print(message)
-            return
-
-        current_time = time.time()
-
-        # Always show first occurrence
-        if message not in _message_counts:
-            _message_counts[message] = 1
-            _last_message_time[message] = current_time
-            print(message)
-            return
-
-        _message_counts[message] += 1
-        time_since_last = current_time - _last_message_time[message]
-
-        # Show every 10th message or after 5 seconds, whichever comes first
-        if _message_counts[message] % 10 == 0 or time_since_last >= 5.0:
-            _last_message_time[message] = current_time
-            count = _message_counts[message]
-            print(f"{message} ({count} times)")
-            return
 
     def _ensure_streaming_backend(
         self, lut_size: int, stream_name: str | None = None
@@ -125,7 +99,7 @@ class OpenGradeIOLUTStreamer:
                     f"Creating streaming backend for {lut_size}x{lut_size}x{lut_size} LUT"
                 )
                 self._streamer = StreamingFactory.create_lut_streamer(
-                    effective_stream_name, lut_size
+                    effective_stream_name, lut_size, quiet_mode=self.quiet_mode
                 )
 
                 # Initialize the backend
@@ -224,12 +198,20 @@ class OpenGradeIOLUTStreamer:
                 self._streamer.send_lut_texture(hald_image)  # type: ignore[attr-defined]
 
                 effective_name = stream_name or self.stream_name
-                # Show essential streaming success info - elide in quiet mode
-                message = f"🎯 Streamed {lut_size}³ LUT to '{effective_name}'"
+
+                # In quiet mode, only notify when LUT size changes
                 if self.quiet_mode:
-                    self._elided_print(message)
+                    last_size = _lut_state.get(effective_name)
+                    if last_size != lut_size:
+                        if last_size is None:
+                            print(f"🎯 Started streaming {lut_size}³ LUT to '{effective_name}'")
+                        else:
+                            print(f"🎯 LUT size changed: {last_size}³ → {lut_size}³ ('{effective_name}')")
+                        _lut_state[effective_name] = lut_size
                 else:
-                    print(message)
+                    # Verbose mode - show every stream
+                    print(f"🎯 Streamed {lut_size}³ LUT to '{effective_name}'")
+
                 return True
 
             except Exception as e:

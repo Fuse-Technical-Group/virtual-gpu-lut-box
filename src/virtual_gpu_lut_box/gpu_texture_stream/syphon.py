@@ -67,13 +67,14 @@ def _elided_print(message: str, quiet_mode: bool = True) -> None:
 class SyphonBackend(StreamingBackend):
     """macOS Syphon streaming backend using Metal."""
 
-    def __init__(self, name: str, width: int, height: int) -> None:
+    def __init__(self, name: str, width: int, height: int, quiet_mode: bool = True) -> None:
         """Initialize Syphon backend.
 
         Args:
             name: Name identifier for the Syphon stream
             width: Width of the texture in pixels
             height: Height of the texture in pixels
+            quiet_mode: Suppress initialization and FPS messages
         """
         super().__init__(name, width, height)
         self._server: Any | None = None
@@ -83,6 +84,7 @@ class SyphonBackend(StreamingBackend):
         self._texture: Any | None = None
         self._frame_count = 0
         self._last_fps_check = time.time()
+        self._quiet_mode = quiet_mode
 
     def is_available(self) -> bool:
         """Check if Syphon is available on this platform.
@@ -122,16 +124,18 @@ class SyphonBackend(StreamingBackend):
             self._init_metal()
 
             # Create Syphon Metal server
-            print(f"🎥 Creating Syphon Metal server with name: '{self.name}'")
+            if not self._quiet_mode:
+                print(f"🎥 Creating Syphon Metal server with name: '{self.name}'")
             self._server = syphon.SyphonMetalServer(
                 self.name, device=self._device, command_queue=self._command_queue
             )
 
             if self._server is not None:
                 self._initialized = True
-                print(f"✅ Syphon Metal server '{self.name}' created successfully")
-                if self._device is not None:
-                    print(f"📱 Metal device: {self._device.name()}")
+                if not self._quiet_mode:
+                    print(f"✅ Syphon Metal server '{self.name}' created successfully")
+                    if self._device is not None:
+                        print(f"📱 Metal device: {self._device.name()}")
             else:
                 raise InitializationError(
                     f"Failed to create Syphon Metal server '{self.name}'"
@@ -164,17 +168,18 @@ class SyphonBackend(StreamingBackend):
             # Publish frame via Syphon Metal server
             self._server.publish_frame_texture(self._texture)
 
-            # Update frame counter and log FPS periodically
-            self._frame_count += 1
-            current_time = time.time()
-            if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
-                elapsed = current_time - self._last_fps_check
-                fps = (
-                    self._frame_count - (getattr(self, "_last_frame_count", 0))
-                ) / elapsed
-                _elided_print(f"📊 Syphon Metal streaming: {fps:.1f} FPS")
-                self._last_frame_count = self._frame_count
-                self._last_fps_check = current_time
+            # Update frame counter and log FPS periodically (only in verbose mode)
+            if not self._quiet_mode:
+                self._frame_count += 1
+                current_time = time.time()
+                if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
+                    elapsed = current_time - self._last_fps_check
+                    fps = (
+                        self._frame_count - (getattr(self, "_last_frame_count", 0))
+                    ) / elapsed
+                    print(f"📊 Syphon Metal streaming: {fps:.1f} FPS")
+                    self._last_frame_count = self._frame_count
+                    self._last_fps_check = current_time
 
         except Exception as e:
             raise StreamingError(f"Syphon Metal streaming error: {e}") from e
@@ -182,12 +187,15 @@ class SyphonBackend(StreamingBackend):
     def cleanup(self) -> None:
         """Clean up Syphon and Metal resources."""
         if self._server is not None:
-            print(f"🛑 Stopping Syphon Metal server '{self.name}'")
+            if not self._quiet_mode:
+                print(f"🛑 Stopping Syphon Metal server '{self.name}'")
             try:
                 self._server.stop()
-                print(f"✅ Syphon Metal server '{self.name}' stopped successfully")
+                if not self._quiet_mode:
+                    print(f"✅ Syphon Metal server '{self.name}' stopped successfully")
             except Exception as e:
-                print(f"⚠️  Error stopping Syphon Metal server '{self.name}': {e}")
+                if not self._quiet_mode:
+                    print(f"⚠️  Error stopping Syphon Metal server '{self.name}': {e}")
             self._server = None
 
         # Clean up Metal resources
@@ -256,7 +264,8 @@ class SyphonBackend(StreamingBackend):
             if self._command_queue is None:
                 raise InitializationError("Failed to create Metal command queue")
 
-            print(f"✅ Metal device initialized: {self._device.name()}")
+            if not self._quiet_mode:
+                print(f"✅ Metal device initialized: {self._device.name()}")
 
         except Exception as e:
             raise InitializationError(f"Metal initialization failed: {e}") from e

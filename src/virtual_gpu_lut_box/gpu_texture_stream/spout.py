@@ -76,13 +76,14 @@ def _elided_print(message: str, quiet_mode: bool = True) -> None:
 class SpoutBackend(StreamingBackend):
     """Windows SpoutGL streaming backend using OpenGL textures."""
 
-    def __init__(self, name: str, width: int, height: int) -> None:
+    def __init__(self, name: str, width: int, height: int, quiet_mode: bool = True) -> None:
         """Initialize SpoutGL backend.
 
         Args:
             name: Name identifier for the Spout stream
             width: Width of the texture in pixels
             height: Height of the texture in pixels
+            quiet_mode: Suppress initialization and FPS messages
         """
         super().__init__(name, width, height)
         self._sender: Any | None = None
@@ -90,6 +91,7 @@ class SpoutBackend(StreamingBackend):
         self._texture: Any | None = None  # OpenGL texture ID
         self._frame_count = 0
         self._last_fps_check = time.time()
+        self._quiet_mode = quiet_mode
 
     def is_available(self) -> bool:
         """Check if SpoutGL and PyOpenGL are available on this platform.
@@ -133,13 +135,15 @@ class SpoutBackend(StreamingBackend):
             self._sender.setSenderName(self.name)
 
             # Initialize OpenGL context (required for texture operations)
-            print(f"Creating Spout sender with OpenGL context: '{self.name}'")
+            if not self._quiet_mode:
+                print(f"Creating Spout sender with OpenGL context: '{self.name}'")
             if not self._sender.createOpenGL():
                 raise InitializationError("Failed to create OpenGL context")
 
             # Mark as initialized
             self._initialized = True
-            print(f"Spout sender '{self.name}' initialized successfully")
+            if not self._quiet_mode:
+                print(f"Spout sender '{self.name}' initialized successfully")
 
         except Exception as e:
             raise InitializationError(f"Failed to initialize SpoutGL: {e}") from e
@@ -179,17 +183,18 @@ class SpoutBackend(StreamingBackend):
             if not success:
                 raise StreamingError("SpoutGL sendTexture failed")
 
-            # Update frame counter and log FPS periodically
-            self._frame_count += 1
-            current_time = time.time()
-            if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
-                elapsed = current_time - self._last_fps_check
-                fps = (
-                    self._frame_count - (getattr(self, "_last_frame_count", 0))
-                ) / elapsed
-                _elided_print(f"Spout streaming: {fps:.1f} FPS")
-                self._last_frame_count = self._frame_count
-                self._last_fps_check = current_time
+            # Update frame counter and log FPS periodically (only in verbose mode)
+            if not self._quiet_mode:
+                self._frame_count += 1
+                current_time = time.time()
+                if current_time - self._last_fps_check > 2.0:  # Every 2 seconds
+                    elapsed = current_time - self._last_fps_check
+                    fps = (
+                        self._frame_count - (getattr(self, "_last_frame_count", 0))
+                    ) / elapsed
+                    print(f"Spout streaming: {fps:.1f} FPS")
+                    self._last_frame_count = self._frame_count
+                    self._last_fps_check = current_time
 
         except Exception as e:
             raise StreamingError(f"SpoutGL streaming error: {e}") from e
@@ -237,7 +242,8 @@ class SpoutBackend(StreamingBackend):
             # Create or reuse texture
             if self._texture is None:
                 self._texture = GL.glGenTextures(1)
-                print(f"Created OpenGL texture ID: {self._texture}")
+                if not self._quiet_mode:
+                    print(f"Created OpenGL texture ID: {self._texture}")
 
             # Bind texture
             GL.glBindTexture(GL.GL_TEXTURE_2D, self._texture)
