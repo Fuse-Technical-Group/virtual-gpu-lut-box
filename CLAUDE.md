@@ -88,15 +88,15 @@ Cross-platform Python package for streaming color correction LUTs from OpenGrade
 - Preserves exact channel count and precision
 
 ### Shader Build System
-- **Source**: `shaders/src/` - Core GLSL functions and platform templates
-- **Build Script**: `shaders/build_shaders.py` - Generates client integrations
-- **Output**: `build/client_integrations/` - Platform-specific shaders
+- **Source**: `client_integrations/src/` - Core GLSL functions and platform templates
+- **Build Script**: `client_integrations/build_shaders.py` - Generates client integrations
+- **Output**: `client_integrations/` - Platform-specific shaders (built in place)
 - **Platforms**: TouchDesigner, Pixera (Unreal/Notch planned)
 - **Interpolation**: Tetrahedral (industry standard, 4-sample accuracy)
 
 **Building Shaders**:
 ```bash
-uv run python shaders/build_shaders.py
+uv run python client_integrations/build_shaders.py
 ```
 
 ## Development Standards
@@ -142,7 +142,7 @@ uv run python shaders/build_shaders.py
   - Added UP032 ruff rule to enforce f-string usage going forward
   - Improved readability and performance of string formatting
 - **Shader Architecture (2025)**: Implemented build system for multi-platform shaders
-  - Created `shaders/src/` with core GLSL functions using tetrahedral interpolation
+  - Created `client_integrations/src/` with core GLSL functions using tetrahedral interpolation
   - Platform-specific templates for TouchDesigner and Pixera
-  - Python build script generates client integrations to `build/client_integrations/`
+  - Python build script generates client integrations to `client_integrations/`
   - Replaced trilinear with tetrahedral interpolation (industry standard)

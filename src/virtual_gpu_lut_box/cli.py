@@ -16,7 +16,11 @@ from .server import VirtualGPULUTBoxServer
 
 
 @click.command()
-@click.option("--host", default="127.0.0.1", help="Server host address")
+@click.option(
+    "--host",
+    default=VirtualGPULUTBoxServer.DEFAULT_HOST,
+    help="Server host address (0.0.0.0 = all interfaces)",
+)
 @click.option(
     "--port", default=VirtualGPULUTBoxServer.DEFAULT_PORT, help="Server port number"
 )

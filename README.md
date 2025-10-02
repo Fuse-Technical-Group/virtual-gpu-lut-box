@@ -44,42 +44,48 @@ pip install virtual-gpu-lut-box
 
 Start OpenGradeIO network server:
 ```bash
-# Listen for OpenGradeIO connections with default settings
+# Listen for OpenGradeIO connections (default: 0.0.0.0:8089)
 uv run virtual-gpu-lut-box
 
 # Custom configuration
-uv run virtual-gpu-lut-box --host 127.0.0.1 --port 8089 --verbose
+uv run virtual-gpu-lut-box --host 0.0.0.0 --port 8089 --verbose
+
+# Localhost only (for development/testing)
+uv run virtual-gpu-lut-box --host 127.0.0.1
 
 # Custom base stream name for OpenGradeIO LUTs
 uv run virtual-gpu-lut-box --stream-name "MyProject-LUT" --verbose
 ```
 
-Check platform support and system information:
-```bash
-uv run virtual-gpu-lut-box --info
-```
+**Network Configuration:**
+- **Default (`0.0.0.0`)**: Listens on all network interfaces - accepts connections from any machine
+- **Localhost (`127.0.0.1`)**: Only accepts connections from the same machine (development/testing)
+- **Windows**: May require firewall rule for Python or port 8089 when using `0.0.0.0`
+- **Security**: OpenGradeIO has no authentication - only use on trusted production networks
 
-## Client Integration Shaders
+
+### Client Integration Shaders
 
 Pre-built GLSL shaders with tetrahedral interpolation for professional color accuracy:
 
-### TouchDesigner
+#### TouchDesigner
 - **File**: `client_integrations/td_hald_lut.glsl`
 - **Platforms**: Windows (Spout), macOS (Syphon)
 - Standard GLSL TOP shader with auto-detected LUT size
 - **[Setup Guide](client_integrations/TD_SETUP_GUIDE.md)**
 
-### Pixera
+#### Pixera
 - **File**: `client_integrations/pixera_hald_lut.glsl`
 - **Platforms**: Windows (Spout)
 - Struct-based shader format for Pixera media server
 - **[Setup Guide](client_integrations/PIXERA_SETUP_GUIDE.md)**
 
-**Quick Workflow:**
-1. Start server: `uv run virtual-gpu-lut-box`
-2. Load shader into your application
-3. Connect inputs: (1) your content, (2) Spout/Syphon receiving LUT stream
-4. Point OpenGradeIO-compatible grading software to `[hostname]:8089`
+### OpenGradeIO-Compatible Controller
+
+Point your OpenGradeIO-compatible grading software (such as Pomfort LiveGrade) to `[hostname]`.
+- To accomplish this you will have to use the unfortunately named `PomfortVL for Unreal Engine` "device", and your virtual-gpu-lut-box compatible system will show up with a goofy `U` next to it in Livegrade.
+
+> Pomfort has not opted to define a single OpenGradeIO protocol that all device vendors adhere to for some insane reason, instead preferring to complicate their software with over a dozen "unique" device vendors that they "support".
 
 ## Platform Support
 
@@ -135,32 +141,26 @@ pip install virtual-gpu-lut-box[dev]
 
 ## Python API
 
+For embedding the LUT server directly in your Python application (rather than running as an external CLI process).
+
+**Note:** The server automatically spawns a separate process to avoid Python GIL blocking, ensuring network I/O doesn't stall your main application.
+
 ### OpenGradeIO Network Server
 
 ```python
-from virtual_gpu_lut_box import OpenGradeIOServer, OpenGradeIOLUTStreamer
-import numpy as np
+from virtual_gpu_lut_box import VirtualGPULUTBoxServer
 
-# Create LUT streamer with automatic channel naming
-streamer = OpenGradeIOLUTStreamer(stream_name="OpenGradeIO-LUT")
-
-# LUT callback function
-def lut_callback(lut_data: np.ndarray, channel_name: str = None):
-    try:
-        streamer.process_lut(lut_data, channel_name)
-        print(f"Streamed LUT for channel: {channel_name or 'default'}")
-    except Exception as e:
-        print(f"Error streaming LUT: {e}")
-
-# Start OpenGradeIO server
-server = OpenGradeIOServer(
-    host="127.0.0.1",
-    port=8089,
-    lut_callback=lut_callback
+# Start OpenGradeIO server with GPU streaming (default: 0.0.0.0:8089)
+server = VirtualGPULUTBoxServer(
+    stream_name="OpenGradeIO-LUT",
+    verbose=False
 )
 
 server.start()
-# Server runs in background thread
+# Server runs in background process (non-blocking)
+
+# Or specify custom host/port:
+# server = VirtualGPULUTBoxServer(host="0.0.0.0", port=8089)
 ```
 
 ### Setup
@@ -202,7 +202,7 @@ uv run invoke test
 # Type checking with Pyright
 uv run invoke typecheck
 
-# Spell checking with cspell
+# Spell checking with codespell
 uv run invoke spell
 
 # Security analysis with bandit
@@ -256,7 +256,7 @@ uv run ruff format src tests
 uv run pyright
 
 # Spell checking
-uv run cspell --config .cspell.json '**/*.{py,md,yml,yaml,json,txt,rst}'
+uv run codespell
 
 # Security analysis
 uv run bandit -r src/virtual_gpu_lut_box
@@ -275,7 +275,7 @@ uv run python -m build
 
 ## License
 
-BSD 3-Clause License - see LICENSE file for details.
+[BSD 3-Clause License](./LICENSES/BSD-3-Clause.txt).
 
 ## Acknowledgments
 

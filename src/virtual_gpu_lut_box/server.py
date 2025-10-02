@@ -106,11 +106,12 @@ def _server_process_worker(
 class VirtualGPULUTBoxServer:
     """High-level server that manages both network and GPU streaming components in a separate process."""
 
+    DEFAULT_HOST = OpenGradeIOServer.DEFAULT_HOST
     DEFAULT_PORT = OpenGradeIOServer.DEFAULT_PORT
 
     def __init__(
         self,
-        host: str = "127.0.0.1",
+        host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
         stream_name: str = "OpenGradeIO-LUT",
         verbose: bool = False,
