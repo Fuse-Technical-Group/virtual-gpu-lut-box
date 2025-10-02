@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Command-line interface for virtual-gpu-lut-box."""
 
 from __future__ import annotations

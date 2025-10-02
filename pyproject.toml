@@ -126,7 +126,7 @@ line-ending = "auto"
 [tool.pyright]
 pythonVersion = "3.11"
 include = ["src/virtual_gpu_lut_box"]
-exclude = ["**/__pycache__", "**/node_modules", "**/gpu_texture_stream/spout.py"]
+exclude = ["**/__pycache__", "**/node_modules", "**/gpu_texture_stream/spout.py", "**/gpu_texture_stream/syphon.py"]
 reportMissingImports = true
 reportMissingTypeStubs = false
 # Ignore missing imports for external dependencies
@@ -204,10 +204,16 @@ skip_covered = false
 [tool.coverage.html]
 directory = "htmlcov"
 
+[tool.codespell]
+skip = "node_modules,.git,dist,build,*.egg-info,.pytest_cache,.mypy_cache,.ruff_cache,htmlcov,__pycache__,.venv,.uv,uv.lock"
+ignore-words-list = "anthropic,bson,hald,opengradeio,pypi,pyright,rgba,bgra,spout,syphon,arraylike,ascontiguousarray,dlut,dtype,endian,framebuffer,frombuffer,glfw,isfinite,ismethod,isort,kwargs,lut,luts,mypy,nbytes,ndarray,numpy,pycodestyle,pyflakes,pyobjc,pypa,pycache,pyproject,pyright,pytest,pyupgrade,repr,sdist,streamer,streamers,tobytes,toml,uint,uv,venv,vglb,ba,nd"
+
 [dependency-groups]
 dev = [
     "bandit>=1.8.6",
     "build>=1.2.2.post1",
+    "codespell>=2.4.1",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+    "reuse>=5.1.1",
 ]

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """OpenGradeIO virtual LUT box server implementation."""
 
 from __future__ import annotations
@@ -131,10 +135,17 @@ class OpenGradeIOServer:
 
                 except TimeoutError:
                     continue
+                except KeyboardInterrupt:
+                    # Gracefully handle keyboard interrupt in accept loop
+                    logger.debug("Keyboard interrupt in accept loop")
+                    break
                 except Exception as e:
                     if self._running:
                         logger.error(f"Error accepting connection: {e}")
 
+        except KeyboardInterrupt:
+            # Gracefully handle keyboard interrupt
+            logger.debug("Server interrupted by keyboard interrupt")
         except Exception as e:
             logger.error(f"Server error: {e}")
         finally:

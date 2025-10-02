@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Fuse Technical Group
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Pixera Hald LUT Shader (Template)
 // For use with virtual-gpu-lut-box Spout streaming
 //

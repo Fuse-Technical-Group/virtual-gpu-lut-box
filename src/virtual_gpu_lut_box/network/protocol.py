@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Protocol handler for OpenGradeIO BSON messages."""
 
 from __future__ import annotations

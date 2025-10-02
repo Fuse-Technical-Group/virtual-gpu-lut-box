@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """macOS Syphon streaming backend using Metal."""
 
 from __future__ import annotations

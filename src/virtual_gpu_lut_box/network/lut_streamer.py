@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Integration layer for streaming LUTs from OpenGradeIO to GPU."""
 
 from __future__ import annotations

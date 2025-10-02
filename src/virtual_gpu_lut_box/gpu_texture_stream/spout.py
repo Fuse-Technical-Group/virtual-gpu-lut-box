@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Windows SpoutGL streaming backend with OpenGL texture support.
 
 REQUIREMENTS: This backend uses GL_RGBA32F OpenGL textures for full float32 precision.
@@ -98,9 +102,7 @@ class SpoutBackend(StreamingBackend):
             return False
 
         # Try to import SpoutGL and PyOpenGL
-        return (
-            GL is not None and importlib.util.find_spec("SpoutGL") is not None
-        )
+        return GL is not None and importlib.util.find_spec("SpoutGL") is not None
 
     def initialize(self) -> None:
         """Initialize the SpoutGL sender with OpenGL context.
@@ -243,8 +245,12 @@ class SpoutBackend(StreamingBackend):
             # Set texture parameters
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+            GL.glTexParameteri(
+                GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE
+            )
+            GL.glTexParameteri(
+                GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE
+            )
 
             # Upload texture data with GL_RGBA32F format
             GL.glTexImage2D(

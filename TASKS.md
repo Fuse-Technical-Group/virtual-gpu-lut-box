@@ -24,10 +24,13 @@ uv add invoke --dev
 - **`invoke format`** - Format code with ruff
 - **`invoke lint`** - Run linting with ruff
 - **`invoke typecheck`** - Run type checking with pyright
-- **`invoke spell`** - Run spell checking with cspell
-  - `--fix` - Interactive spell checking mode
+- **`invoke spell`** - Run spell checking with codespell
+  - `--fix` - Automatically fix spelling issues
 - **`invoke security`** - Run security analysis with bandit
 - **`invoke check-patterns`** - Check for banned code patterns
+- **`invoke reuse-annotate`** - Add SPDX license headers to source files missing them
+- **`invoke reuse-lint`** - Verify REUSE compliance (check SPDX headers)
+  - Note: May timeout on Windows systems with >=64 logical processors ([multiprocessing limitation](https://stackoverflow.com/q/65252807))
 - **`invoke test`** - Run tests with pytest
   - `--no-coverage` - Skip coverage report
   - `--verbose` - Run with verbose output

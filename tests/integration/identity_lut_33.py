@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Stream a 33x33x33 identity LUT until a key is pressed.
 
 An identity LUT passes colors through unchanged - useful for testing
@@ -53,11 +58,11 @@ def main():
 
     # Debug: Check specific coordinates
     print("\n  Debug - Sample LUT values:")
-    print(f"    lut[0,0,0] = {lut[0,0,0]} (should be [0.0, 0.0, 0.0])")
-    print(f"    lut[32,0,0] = {lut[32,0,0]} (should be [1.0, 0.0, 0.0])")
-    print(f"    lut[0,32,0] = {lut[0,32,0]} (should be [0.0, 1.0, 0.0])")
-    print(f"    lut[0,0,32] = {lut[0,0,32]} (should be [0.0, 0.0, 1.0])")
-    print(f"    lut[32,32,32] = {lut[32,32,32]} (should be [1.0, 1.0, 1.0])")
+    print(f"    lut[0,0,0] = {lut[0, 0, 0]} (should be [0.0, 0.0, 0.0])")
+    print(f"    lut[32,0,0] = {lut[32, 0, 0]} (should be [1.0, 0.0, 0.0])")
+    print(f"    lut[0,32,0] = {lut[0, 32, 0]} (should be [0.0, 1.0, 0.0])")
+    print(f"    lut[0,0,32] = {lut[0, 0, 32]} (should be [0.0, 0.0, 1.0])")
+    print(f"    lut[32,32,32] = {lut[32, 32, 32]} (should be [1.0, 1.0, 1.0])")
 
     # Convert to Hald format
     print("\nConverting to Hald image format...")
@@ -67,11 +72,21 @@ def main():
 
     # Debug: Check Hald image corners and key positions
     print("\n  Debug - Sample Hald image values:")
-    print(f"    Top-left corner [0,0] = {hald_image[0,0,:3]} (should be [0.0, 0.0, 0.0])")
-    print(f"    Top-right of first page [0,32] = {hald_image[0,32,:3]} (should be [0.0, 1.0, 0.0])")
-    print(f"    Bottom-left of first page [32,0] = {hald_image[32,0,:3]} (should be [1.0, 0.0, 0.0])")
-    print(f"    Top-left of last page [0,1056] = {hald_image[0,1056,:3]} (should be [0.0, 0.0, 1.0])")
-    print(f"    Bottom-right corner [32,1088] = {hald_image[32,1088,:3]} (should be [1.0, 1.0, 1.0])")
+    print(
+        f"    Top-left corner [0,0] = {hald_image[0, 0, :3]} (should be [0.0, 0.0, 0.0])"
+    )
+    print(
+        f"    Top-right of first page [0,32] = {hald_image[0, 32, :3]} (should be [0.0, 1.0, 0.0])"
+    )
+    print(
+        f"    Bottom-left of first page [32,0] = {hald_image[32, 0, :3]} (should be [1.0, 0.0, 0.0])"
+    )
+    print(
+        f"    Top-left of last page [0,1056] = {hald_image[0, 1056, :3]} (should be [0.0, 0.0, 1.0])"
+    )
+    print(
+        f"    Bottom-right corner [32,1088] = {hald_image[32, 1088, :3]} (should be [1.0, 1.0, 1.0])"
+    )
 
     # Create streaming backend
     print("\nInitializing streaming backend...")

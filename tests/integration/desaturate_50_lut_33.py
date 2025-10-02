@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Stream an animated desaturation LUT that ramps between full color and grayscale.
 
 This LUT animates over 3 seconds, ramping from full saturation (0%) to
@@ -19,7 +24,9 @@ from virtual_gpu_lut_box.gpu_texture_stream.factory import StreamingFactory
 from virtual_gpu_lut_box.lut.hald_converter import HaldConverter
 
 
-def create_desaturation_lut(lut_size: int = 33, desaturation: float = 0.5) -> np.ndarray:
+def create_desaturation_lut(
+    lut_size: int = 33, desaturation: float = 0.5
+) -> np.ndarray:
     """Create a desaturation LUT.
 
     Args:
@@ -50,9 +57,15 @@ def create_desaturation_lut(lut_size: int = 33, desaturation: float = 0.5) -> np
                 # Blend between grayscale and original color
                 # desaturation=0.0 → full color (luminance weight = 0%)
                 # desaturation=1.0 → full grayscale (luminance weight = 100%)
-                lut[r, g, b, 0] = luminance * desaturation + r_val * (1.0 - desaturation)
-                lut[r, g, b, 1] = luminance * desaturation + g_val * (1.0 - desaturation)
-                lut[r, g, b, 2] = luminance * desaturation + b_val * (1.0 - desaturation)
+                lut[r, g, b, 0] = luminance * desaturation + r_val * (
+                    1.0 - desaturation
+                )
+                lut[r, g, b, 1] = luminance * desaturation + g_val * (
+                    1.0 - desaturation
+                )
+                lut[r, g, b, 2] = luminance * desaturation + b_val * (
+                    1.0 - desaturation
+                )
 
     return lut
 
@@ -122,7 +135,7 @@ def main():
                 # Progress indicator - update every frame with current desaturation
                 print(
                     f"\r   Streaming... {frame_count} frames | "
-                    f"Desaturation: {desaturation*100:5.1f}% | "
+                    f"Desaturation: {desaturation * 100:5.1f}% | "
                     f"Time: {elapsed:.1f}s",
                     end="",
                     flush=True,

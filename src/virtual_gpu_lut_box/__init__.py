@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Virtual GPU LUT Box - Cross-platform LUT streaming for GPU shaders.
 
 A Python package for streaming color correction LUTs from OpenGradeIO to GPU

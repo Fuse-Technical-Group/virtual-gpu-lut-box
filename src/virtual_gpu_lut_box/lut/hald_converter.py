@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Convert 3D LUT to 2D Hald image format for GPU textures."""
 
 from __future__ import annotations

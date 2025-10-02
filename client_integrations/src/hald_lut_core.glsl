@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Fuse Technical Group
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Hald LUT Core Functions
 // Tetrahedral interpolation for 3D LUTs in 2D Hald image format
 //

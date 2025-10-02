@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Fuse Technical Group
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Virtual GPU LUT Box - Short import alias.
 
 This module provides a short import alias for virtual_gpu_lut_box.
