@@ -19,7 +19,7 @@ Enhance professional color grading workflows with a cross-platform Python packag
 ### From Source
 
 ```bash
-git clone https://github.com/repentsinner/virtual-gpu-lut-box.git
+git clone https://github.com/Fuse-Technical-Group/virtual-gpu-lut-box
 cd virtual-gpu-lut-box
 uv sync
 ```
@@ -84,8 +84,6 @@ Pre-built GLSL shaders with tetrahedral interpolation for professional color acc
 
 Point your OpenGradeIO-compatible grading software (such as Pomfort LiveGrade) to `[hostname]`.
 - To accomplish this you will have to use the unfortunately named `PomfortVL for Unreal Engine` "device", and your virtual-gpu-lut-box compatible system will show up with a goofy `U` next to it in Livegrade.
-
-> Pomfort has not opted to define a single OpenGradeIO protocol that all device vendors adhere to for some insane reason, instead preferring to complicate their software with over a dozen "unique" device vendors that they "support".
 
 ## Platform Support
 
