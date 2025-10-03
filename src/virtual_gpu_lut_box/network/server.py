@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class OpenGradeIOServer:
     """TCP server for OpenGradeIO virtual LUT box protocol."""
 
-    DEFAULT_HOST = "0.0.0.0"  # noqa: S104 # nosec B104 - intentionally bind to all interfaces for network access
+    DEFAULT_HOST = "0.0.0.0"  # Intentionally bind to all interfaces for network access  # noqa: S104  # nosec B104
     DEFAULT_PORT = 8089
 
     def __init__(
