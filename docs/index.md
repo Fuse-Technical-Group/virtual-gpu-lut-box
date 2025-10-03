@@ -1,6 +1,6 @@
 # Virtual GPU LUT Box
 
-Enhance professional color grading workflows with a cross-platform Python package for network-to-GPU streaming of color correction LUTs from OpenGradeIO (aka Pomfort LiveGrade) to GPU LUT processors via Spout (Windows) and Syphon (macOS).
+Enhance professional color grading workflows with a cross-platform Python package for network-to-GPU streaming of color correction LUTs from OpenGradeIO (aka Pomfort Livegrade) to GPU LUT processors via Spout (Windows) and Syphon (macOS).
 
 ## Features
 
@@ -82,7 +82,7 @@ Pre-built GLSL shaders with tetrahedral interpolation for professional color acc
 
 ### OpenGradeIO-Compatible Controller
 
-Point your OpenGradeIO-compatible grading software (such as Pomfort LiveGrade) to `[hostname]`.
+Point your OpenGradeIO-compatible grading software (such as Pomfort Livegrade) to `[hostname]`.
 - To accomplish this you will have to use the unfortunately named `PomfortVL for Unreal Engine` "device", and your virtual-gpu-lut-box compatible system will show up with a goofy `U` next to it in Livegrade.
 
 ## Platform Support
@@ -273,7 +273,9 @@ uv run python -m build
 
 ## License
 
-BSD 3-Clause License - See [LICENSE](https://github.com/Fuse-Technical-Group/virtual-gpu-lut-box/blob/main/LICENSE) for details.
+Copyright (c) 2025, Fuse Technical Group
+
+Licensed under the [BSD 3-Clause License](https://github.com/Fuse-Technical-Group/virtual-gpu-lut-box/blob/main/LICENSES/BSD-3-Clause.txt).
 
 ## Acknowledgments
 
