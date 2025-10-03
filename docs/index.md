@@ -72,13 +72,13 @@ Pre-built GLSL shaders with tetrahedral interpolation for professional color acc
 - **File**: `client_integrations/td_hald_lut.glsl`
 - **Platforms**: Windows (Spout), macOS (Syphon)
 - Standard GLSL TOP shader with auto-detected LUT size
-- **[Setup Guide](docs/guides/td-setup.md)**
+- **[Setup Guide](guides/td-setup.md)**
 
 #### Pixera
 - **File**: `client_integrations/pixera_hald_lut.glsl`
 - **Platforms**: Windows (Spout)
 - Struct-based shader format for Pixera media server
-- **[Setup Guide](docs/guides/pixera-setup.md)**
+- **[Setup Guide](guides/pixera-setup.md)**
 
 ### OpenGradeIO-Compatible Controller
 
@@ -179,7 +179,7 @@ uv run invoke dev-setup
 
 ### Development Tasks
 
-This project uses [Invoke](https://pyinvoke.org/) for task automation. See [Tasks documentation](docs/tasks.md) for full details.
+This project uses [Invoke](https://pyinvoke.org/) for task automation. See [Tasks](tasks.md) for full details.
 
 ```bash
 # Run all quality checks
@@ -273,7 +273,7 @@ uv run python -m build
 
 ## License
 
-[BSD 3-Clause License](./LICENSES/BSD-3-Clause.txt).
+BSD 3-Clause License - See [LICENSE](https://github.com/Fuse-Technical-Group/virtual-gpu-lut-box/blob/main/LICENSE) for details.
 
 ## Acknowledgments
 

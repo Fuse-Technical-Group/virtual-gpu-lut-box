@@ -1,0 +1,70 @@
+site_name: Virtual GPU LUT Box
+site_description: Cross-platform LUT streaming for GPU shaders via Spout and Syphon
+site_author: Fuse Technical Group
+repo_url: https://github.com/Fuse-Technical-Group/virtual-gpu-lut-box
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Setup Guides:
+      - TouchDesigner: guides/td-setup.md
+      - Pixera: guides/pixera-setup.md
+  - Development:
+      - Contributing: development.md
+      - Tasks: tasks.md
+  - API Reference: api.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            heading_level: 2
+            members_order: source
+            docstring_section_style: spacy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true

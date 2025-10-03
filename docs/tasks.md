@@ -4,16 +4,10 @@ This project uses [Invoke](https://pyinvoke.org/) for task automation. Tasks are
 
 ## Setup
 
-First, install the development dependencies including invoke:
+Install the development dependencies:
 
 ```bash
-uv sync --extra dev
-```
-
-**Note**: If you get an error with `uv run invoke`, try:
-```bash
-# Install invoke explicitly
-uv add invoke --dev
+uv sync --all-extras
 ```
 
 ## Available Tasks
@@ -44,12 +38,6 @@ uv add invoke --dev
 - **`invoke install`** - Install the package
   - `--dev` - Install with development dependencies
   - `--no-editable` - Install in non-editable mode
-
-**Alternative Build Method**: If invoke is not working, you can build manually:
-```bash
-uv run python -m build    # Build package
-uv run invoke clean        # Clean build artifacts
-```
 
 ### Documentation & Setup
 
@@ -132,24 +120,7 @@ The tasks are designed to work well with CI/CD systems:
 
 ```bash
 # In GitHub Actions or similar
-invoke all  # Runs complete pipeline
-```
-
-## Troubleshooting
-
-**Task not found**: Make sure you have invoke installed:
-```bash
-uv add invoke --dev
-```
-
-**Import errors**: Make sure the package is installed:
-```bash
-uv run invoke install --dev
-```
-
-**Permission errors**: Make sure you have the right permissions for publishing:
-```bash
-uv add twine --dev
+uv run invoke all  # Runs complete pipeline
 ```
 
 For more information about invoke, see the [official documentation](https://pyinvoke.org/).

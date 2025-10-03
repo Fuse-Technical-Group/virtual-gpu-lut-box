@@ -285,38 +285,18 @@ def install(ctx: Context, dev: bool = False, editable: bool = True) -> None:
 
 @task
 def docs(ctx: Context) -> None:
-    """Generate documentation."""
-    print("📚 Generating documentation...")
+    """Build documentation with MkDocs."""
+    print("📚 Building documentation...")
+    ctx.run("mkdocs build")
+    print("✅ Documentation built to site/")
 
-    # Create docs directory if it doesn't exist
-    docs_dir = Path("docs")
-    docs_dir.mkdir(exist_ok=True)
 
-    # Generate API documentation
-    api_doc = docs_dir / "api.md"
-    print(f"  Generating API documentation: {api_doc}")
-
-    ctx.run(
-        f'''python -c "
-from virtual_gpu_lut_box import VirtualGPULUTBoxServer
-import inspect
-
-with open('{api_doc}', 'w') as f:
-    f.write('# API Documentation\\n\\n')
-
-    classes = [VirtualGPULUTBoxServer]
-    for cls in classes:
-        f.write(f'## {{cls.__name__}}\\n\\n')
-        f.write(f'{{cls.__doc__ or \"No documentation available.\"}}\\n\\n')
-
-        for name, method in inspect.getmembers(cls, predicate=inspect.ismethod):
-            if not name.startswith('_'):
-                f.write(f'### {{name}}\\n\\n')
-                f.write(f'{{method.__doc__ or \"No documentation available.\"}}\\n\\n')
-"'''
-    )
-
-    print("✅ Documentation generated")
+@task
+def docs_serve(ctx: Context) -> None:
+    """Serve documentation locally with live reload."""
+    print("📚 Serving documentation at http://127.0.0.1:8000")
+    print("   Press Ctrl+C to stop")
+    ctx.run("mkdocs serve")
 
 
 @task
