@@ -106,10 +106,14 @@ def spell(ctx: Context, fix: bool = False) -> None:
 
 @task
 def security(ctx: Context) -> None:
-    """Run security analysis with bandit."""
+    """Run security analysis with bandit and safety."""
     print("🔒 Running security analysis with bandit...")
     ctx.run("bandit -r src/virtual_gpu_lut_box")
-    print("✅ Security analysis completed")
+    print("✅ Bandit analysis completed")
+
+    print("🔒 Checking dependencies for vulnerabilities with safety...")
+    ctx.run("safety check")
+    print("✅ Safety check completed")
 
 
 @task
@@ -204,10 +208,13 @@ def test(ctx: Context, coverage: bool = True, verbose: bool = False) -> None:
     print("✅ Tests completed")
 
 
-@task(pre=[format, lint, typecheck, spell, security, check_patterns, test])
+@task(pre=[format, lint, typecheck, spell, security, check_patterns])
 def quality(_: Context) -> None:
-    """Run all quality checks: format, lint, typecheck, spell check, security, pattern check, and test."""
-    print("🎯 All quality checks completed successfully!")
+    """Run code quality checks: format, lint, typecheck, spell check, security, and pattern checks.
+
+    Does NOT run tests - use 'invoke test' separately for functional testing.
+    """
+    print("🎯 Quality checks completed successfully!")
 
 
 @task(pre=[clean])
@@ -216,7 +223,7 @@ def build(ctx: Context) -> None:
     print("🔨 Building package...")
 
     # Build source distribution and wheel
-    ctx.run("python -m build")
+    ctx.run("uv build")
 
     # Show built files
     print("\n📦 Built files:")
@@ -291,34 +298,21 @@ def docs(ctx: Context) -> None:
 
     ctx.run(
         f'''python -c "
-import sys
-sys.path.insert(0, 'src')
-from virtual_gpu_lut_box import LUTGenerator, HaldConverter, StreamingFactory
+from virtual_gpu_lut_box import VirtualGPULUTBoxServer
 import inspect
 
 with open('{api_doc}', 'w') as f:
     f.write('# API Documentation\\n\\n')
 
-    classes = [
-        ('LUTGenerator', LUTGenerator),
-        ('HaldConverter', HaldConverter),
-        ('StreamingFactory', StreamingFactory),
-    ]
-
-    for name, cls in classes:
-        f.write(f'## {{name}}\\n\\n')
+    classes = [VirtualGPULUTBoxServer]
+    for cls in classes:
+        f.write(f'## {{cls.__name__}}\\n\\n')
         f.write(f'{{cls.__doc__ or \"No documentation available.\"}}\\n\\n')
 
-        # Get public methods
-        methods = [m for m in inspect.getmembers(cls, predicate=inspect.ismethod)
-                  if not m[0].startswith('_')]
-        methods.extend([m for m in inspect.getmembers(cls, predicate=inspect.isfunction)
-                       if not m[0].startswith('_')])
-
-        for method_name, method in methods:
-            if hasattr(method, '__doc__') and method.__doc__:
-                f.write(f'### {{method_name}}\\n\\n')
-                f.write(f'{{method.__doc__}}\\n\\n')
+        for name, method in inspect.getmembers(cls, predicate=inspect.ismethod):
+            if not name.startswith('_'):
+                f.write(f'### {{name}}\\n\\n')
+                f.write(f'{{method.__doc__ or \"No documentation available.\"}}\\n\\n')
 "'''
     )
 
@@ -424,10 +418,11 @@ def demo(ctx: Context) -> None:
 
 @task
 def all(ctx: Context) -> None:
-    """Run complete CI/CD pipeline: clean, quality checks, build."""
+    """Run complete CI/CD pipeline: clean, quality checks, tests, and build."""
     print("🎯 Running complete CI/CD pipeline...")
     clean(ctx)
     quality(ctx)
+    test(ctx)
     build(ctx)
     print("🎉 Complete pipeline finished successfully!")
 

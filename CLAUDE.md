@@ -3,7 +3,7 @@
 ## Project Overview
 Cross-platform Python package for streaming color correction LUTs from OpenGradeIO to GPU shaders via Spout (Windows) and Syphon (macOS). Focus on precision-preserving network-to-GPU streaming for professional color grading workflows.
 
-**Python Version**: Requires Python 3.11+ for compatibility with TouchDesigner 2025+ (which includes Python 3.11). Uses modern Python syntax including union types (`X | None`) and `collections.abc` imports.
+**Python Version**: Requires Python 3.11 for compatibility with TouchDesigner 2023.x (current version ships with Python 3.11). Uses modern Python syntax including union types (`X | None`) and `collections.abc` imports.
 
 ## Development Environment
 

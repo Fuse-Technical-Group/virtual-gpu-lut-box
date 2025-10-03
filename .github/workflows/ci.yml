@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
+  quality:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -33,6 +33,32 @@ jobs:
     - name: Run quality checks
       run: uv run invoke quality
 
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: uv sync --all-extras
+
+    - name: Run tests
+      run: uv run invoke test
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
@@ -42,7 +68,7 @@ jobs:
 
   build:
     runs-on: macos-latest
-    needs: test
+    needs: [quality, test]
 
     steps:
     - uses: actions/checkout@v4
@@ -57,8 +83,11 @@ jobs:
       with:
         version: "latest"
 
+    - name: Install dependencies
+      run: uv sync --all-extras
+
     - name: Build package
-      run: uv build
+      run: uv run invoke build
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -107,31 +136,6 @@ jobs:
       run: |
         python -c "from virtual_gpu_lut_box import VirtualGPULUTBoxServer; print('Import successful')"
 
-  security:
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        version: "latest"
-
-    - name: Install dependencies
-      run: uv sync --all-extras
-
-    - name: Run safety check
-      run: uv run safety check
-
-    - name: Run bandit security check
-      run: uv run bandit -r src/virtual_gpu_lut_box
-
   docs:
     runs-on: macos-latest
 
@@ -152,26 +156,7 @@ jobs:
       run: uv sync --all-extras
 
     - name: Generate documentation
-      run: |
-        mkdir -p docs
-        python -c "
-        from virtual_gpu_lut_box import VirtualGPULUTBoxServer
-        import inspect
-
-        # Generate basic API documentation
-        with open('docs/api.md', 'w') as f:
-            f.write('# API Documentation\n\n')
-
-            classes = [VirtualGPULUTBoxServer]
-            for cls in classes:
-                f.write(f'## {cls.__name__}\n\n')
-                f.write(f'{cls.__doc__ or \"No documentation available.\"}\n\n')
-
-                for name, method in inspect.getmembers(cls, predicate=inspect.ismethod):
-                    if not name.startswith('_'):
-                        f.write(f'### {name}\n\n')
-                        f.write(f'{method.__doc__ or \"No documentation available.\"}\n\n')
-        "
+      run: uv run invoke docs
 
     - name: Upload documentation
       uses: actions/upload-artifact@v4
