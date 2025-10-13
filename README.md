@@ -114,6 +114,26 @@ The package supports any cubic LUT size with automatic Hald image calculation:
 - **Format**: 32-bit float only (RGB or RGBA) for maximum precision
 - **Range**: Supports HDR/creative LUTs with values outside [0,1] range
 
+### HDR Handling
+
+**Current Implementation (Display-Referred Workflow):**
+
+The shader implementations use edge clamping for HDR values:
+- Input values in the `[0,1]` range receive full LUT transformation
+- Values `>1.0` are clamped to the LUT's white point
+- Appropriate for workflows where HDR highlights (specular reflections, bright lights) should inherit the white point's color transform
+
+**Example Use Cases:**
+- Real-time rendering (TouchDesigner, game engines)
+- Live event production where LUTs grade diffuse surfaces (skin tones, scenery)
+- Workflows where bright highlights should remain neutral
+
+**Scene-Referred HDR Limitation:**
+
+For scene-referred HDR workflows spanning multiple exposure stops (e.g., -6 to +10 EV), a shaper curve (log2, PQ, ACES) would be needed to compress the full HDR range into `[0,1]` before LUT application, then expand back afterwards. **This is not currently implemented** but is planned for future development.
+
+If you need scene-referred HDR support, please open an issue describing your workflow.
+
 ### OpenGradeIO Integration
 
 - **BSON Protocol**: Full support for OpenGradeIO virtual LUT box protocol
