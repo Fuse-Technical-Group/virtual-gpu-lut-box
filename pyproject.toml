@@ -177,6 +177,11 @@ markers = [
 [tool.coverage.run]
 source = ["src/virtual_gpu_lut_box"]
 branch = true
+omit = [
+    # Platform-specific backends can't be fully tested on all platforms
+    "src/virtual_gpu_lut_box/gpu_texture_stream/spout.py",
+    "src/virtual_gpu_lut_box/gpu_texture_stream/syphon.py",
+]
 
 [tool.coverage.report]
 exclude_lines = [

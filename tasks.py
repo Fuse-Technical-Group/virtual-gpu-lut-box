@@ -10,11 +10,10 @@ from invoke.tasks import task
 
 # Ensure UTF-8 encoding for Windows console (for emoji support)
 if sys.platform == "win32":
-    import locale
-    if sys.stdout.encoding != 'utf-8':
-        sys.stdout.reconfigure(encoding='utf-8')
-    if sys.stderr.encoding != 'utf-8':
-        sys.stderr.reconfigure(encoding='utf-8')
+    if sys.stdout.encoding != "utf-8":
+        sys.stdout.reconfigure(encoding="utf-8")
+    if sys.stderr.encoding != "utf-8":
+        sys.stderr.reconfigure(encoding="utf-8")
 
 
 @task
@@ -112,8 +111,31 @@ def security(ctx: Context) -> None:
     print("✅ Bandit analysis completed")
 
     print("🔒 Checking dependencies for vulnerabilities with safety...")
-    ctx.run("safety check")
-    print("✅ Safety check completed")
+    # Try multiple methods to get Safety API key
+    import os
+
+    api_key = None
+
+    # Method 1: Environment variable
+    api_key = os.environ.get("SAFETY_API_KEY")
+
+    # Method 2: Bitwarden CLI (if available and unlocked)
+    if not api_key:
+        try:
+            result = ctx.run("bw get password safety-api-key", hide=True, warn=True)
+            if result.ok:
+                api_key = result.stdout.strip()
+                print("  Retrieved API key from Bitwarden")
+        except Exception as e:
+            print(f"  Bitwarden CLI not available: {e}")
+            # Continue without API key, will fall back to deprecated command
+
+    if api_key:
+        ctx.run(f"SAFETY_API_KEY='{api_key}' safety scan --stage development")
+    else:
+        print("  No API key found, using deprecated check command")
+        ctx.run("safety check")
+    print("✅ Safety scan completed")
 
 
 @task
@@ -178,7 +200,9 @@ def reuse_lint(ctx: Context) -> None:
         print("✅ REUSE compliance check passed")
     except Exception as e:
         print(f"❌ REUSE lint failed or timed out: {e}")
-        print("\n💡 Windows multiprocessing limitation on high-core systems (>=64 logical processors)")
+        print(
+            "\n💡 Windows multiprocessing limitation on high-core systems (>=64 logical processors)"
+        )
         print("   See: https://stackoverflow.com/q/65252807")
         print("   Headers were added correctly with 'reuse annotate'")
         print("   Manual verification: Check that source files have SPDX headers")

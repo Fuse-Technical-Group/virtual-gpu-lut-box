@@ -30,9 +30,14 @@ vec2 calculateHaldUV(vec3 lutCoord, float lutSize) {
     // Each "page" in the blue dimension is laid out horizontally
     float xOffset = blueLayer * lutSize;
 
+    // Add 0.5 to the integer coordinate to target the exact center of the texel.
+    // This ensures that when `texture()` is called with a linear sampler, it returns
+    // the exact value of that texel without blending with its neighbors.
+    vec3 sampleCoord = lutCoord + 0.5;
+
     return vec2(
-        (lutCoord.g + xOffset) / haldWidth,
-        1.0 - (lutCoord.r / lutSize)  // V-flip for numpy->OpenGL conversion
+        (sampleCoord.g + xOffset) / haldWidth,
+        1.0 - (sampleCoord.r / lutSize)  // V-flip for numpy->OpenGL conversion
     );
 }
 
@@ -40,13 +45,30 @@ vec2 calculateHaldUV(vec3 lutCoord, float lutSize) {
 //
 // The unit cube is subdivided into 6 tetrahedra based on the ordering of RGB components.
 // This provides more accurate interpolation than trilinear (4 samples vs 8) and is the
-// industry standard used in DaVinci Resolve, Baselight, and other professional tools.
+// industry standard for professional color grading.
 //
-// color: Input RGB color [0,1]
+// This implementation follows the algorithm described in NVIDIA's GPU Gems 2,
+// Chapter 24: "Using Lookup Tables to Accelerate Color Transformations".
+// https://developer.nvidia.com/gpugems/gpugems2/part-iii-high-quality-rendering/chapter-24-using-lookup-tables-accelerate-color
+//
+// This implementation is designed for linear floating-point color spaces and correctly
+// handles HDR values outside the [0,1] range by clamping them to the LUT's edge.
+//
+// color: Input RGB color. Designed for linear float data, including HDR values.
 // haldLUT: Hald image sampler
 // lutSize: Size of the LUT (auto-detected from texture)
 //
-// Returns: Color-graded RGB value
+// --- How it Works (Schematically) ---
+// 1. **Scale**: The input color (e.g., `vec3(0.5, 0.2, 0.8)`) is scaled from the
+//    [0,1] range to the LUT's index space (e.g., [0, 32] for a 33-size LUT).
+//    This gives a floating-point coordinate within the LUT's 3D grid.
+// 2. **Locate**: We find the 8 integer grid points that form a small "sub-cube"
+//    around our scaled coordinate.
+// 3. **Interpolate**: Instead of simple trilinear interpolation between the 8 corners,
+//    this function divides the sub-cube into 6 tetrahedra and finds which one
+//    our point is in. It then performs a more accurate blend using the 4 corners
+//    of that specific tetrahedron.
+//
 vec3 applyTetrahedralLUT(vec3 color, sampler2D haldLUT, float lutSize) {
     float lutSizeMinusOne = lutSize - 1.0;
 
@@ -59,8 +81,10 @@ vec3 applyTetrahedralLUT(vec3 color, sampler2D haldLUT, float lutSize) {
     // Get fractional part for interpolation
     vec3 frac = scaledColor - baseLUT;
 
-    // Clamp to valid LUT range
-    baseLUT = clamp(baseLUT, vec3(0.0), vec3(lutSizeMinusOne - 1.0));
+    // Clamp the base lookup coordinate to the valid range of the LUT.
+    // This handles out-of-gamut (HDR) colors by clamping them to the edge
+    // of the LUT cube, which is the desired behavior.
+    baseLUT = clamp(baseLUT, vec3(0.0), vec3(lutSizeMinusOne));
 
     // Determine which tetrahedron we're in based on RGB component ordering
     // There are 6 cases based on which component is largest, middle, and smallest
@@ -79,6 +103,7 @@ vec3 applyTetrahedralLUT(vec3 color, sampler2D haldLUT, float lutSize) {
     // Common base point for all tetrahedra
     c0 = baseLUT;
 
+    // Select the appropriate tetrahedron for the input color/point
     if (frac.r >= frac.g) {
         if (frac.g >= frac.b) {
             // Case 1: r >= g >= b
@@ -139,12 +164,27 @@ vec3 applyTetrahedralLUT(vec3 color, sampler2D haldLUT, float lutSize) {
         }
     }
 
-    // Convert 3D LUT coordinates to 2D Hald UVs and sample
+    // The logic above operates in a conceptual 3D LUT space, identifying the
+    // four 3D integer coordinates (c0, c1, c2, c3) of the tetrahedron's corners.
+    //
+    // Now, we translate each of these 3D coordinates into a 2D UV coordinate
+    // for sampling the Hald image. The `calculateHaldUV` function handles this
+    // mapping, ensuring that the blue component correctly offsets the lookup
+    // to the right "page" in the 2D texture.
+    //
+    // This separation of concerns (3D logic first, 2D translation last) ensures
+    // that we perform a true 3D tetrahedral interpolation without any loss of
+    // quality or precision on any axis.
     vec2 uv0 = calculateHaldUV(c0, lutSize);
     vec2 uv1 = calculateHaldUV(c1, lutSize);
     vec2 uv2 = calculateHaldUV(c2, lutSize);
     vec2 uv3 = calculateHaldUV(c3, lutSize);
 
+    // Sample the four corner points of the tetrahedron.
+    // Because `calculateHaldUV` generates UVs that point to the exact center of each
+    // texel, the hardware's linear filtering does not perform any interpolation here.
+    // We are fetching the four discrete color values needed for our manual barycentric
+    // blend. `texelFetch` is not required.
     vec3 sample0 = texture(haldLUT, uv0).rgb;
     vec3 sample1 = texture(haldLUT, uv1).rgb;
     vec3 sample2 = texture(haldLUT, uv2).rgb;

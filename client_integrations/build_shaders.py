@@ -19,7 +19,6 @@ Usage:
 import argparse
 from datetime import datetime
 from pathlib import Path
-import shutil
 
 
 def get_version() -> str:
@@ -92,7 +91,9 @@ def strip_spdx_header(content: str) -> str:
     return "\n".join(output_lines)
 
 
-def build_shader(core_path: Path, template_path: Path, output_path: Path, version: str) -> None:
+def build_shader(
+    core_path: Path, template_path: Path, output_path: Path, version: str
+) -> None:
     """Build a single shader by concatenating core + template."""
     # Read core functions
     with open(core_path, encoding="utf-8") as f:

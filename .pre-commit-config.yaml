@@ -45,6 +45,7 @@ repos:
     hooks:
       - id: bandit
         args: [-r, src/virtual_gpu_lut_box]
+        exclude: ^tests/
 
   - repo: local
     hooks:

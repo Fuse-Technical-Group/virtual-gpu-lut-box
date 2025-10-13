@@ -273,7 +273,7 @@ uv run python -m build
 
 ## License
 
-Copyright (c) 2025, Fuse Technical Group
+Copyright (c) 2025, [Fuse Technical Group](https://fuse-tg.com/)
 
 Licensed under the [BSD 3-Clause License](./LICENSES/BSD-3-Clause.txt).
 
