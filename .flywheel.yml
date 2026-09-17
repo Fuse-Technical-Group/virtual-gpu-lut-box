@@ -1,0 +1,27 @@
+# Flywheel release configuration — single-stream starting point.
+#
+# `release: production` cuts a release on every push to the managed branch.
+# `auto_merge` lists the conventional-commit types that merge without review;
+# every other type gates on a human. Tune the list to the project's taste —
+# `feat` is deliberately absent so features gate on review.
+#
+# `chore` covers dependency bumps, so listing it means Dependabot's updates
+# can land unreviewed. Flywheel gates that separately: those PRs auto-merge
+# only once the App private key is also registered in the Dependabot secret
+# store. Withhold that registration, or drop `chore`, to keep the review gate.
+#
+# `!`-suffixed types are separate entries: `fix` does not imply `fix!`.
+flywheel:
+  streams:
+    - name: main-line
+      branches:
+        - name: main
+          release: production
+          auto_merge: [fix, chore, docs]
+
+  # The package version lives in the module (hatch reads it from there), so
+  # each release rewrites it and commits the file with the changelog.
+  release_files:
+    - path: src/virtual_gpu_lut_box/__init__.py
+      pattern: '^__version__ = ".*"'
+      replacement: '__version__ = "${version}"'
