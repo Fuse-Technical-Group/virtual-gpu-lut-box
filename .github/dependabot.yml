@@ -1,0 +1,25 @@
+# Dependabot version-update PRs. Complements (does not replace) Dependabot
+# security updates, which open PRs for vulnerability alerts independently.
+version: 2
+updates:
+  # Python dependencies resolved by uv (pyproject.toml + uv.lock).
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      uv-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Actions are SHA-pinned with a trailing version comment; Dependabot bumps
+  # the SHA and rewrites the comment. The notation reusable workflow is pinned
+  # to a notation--v* tag, which Dependabot does not track — bump that by hand.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
