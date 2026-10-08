@@ -23,9 +23,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        version: "latest"
+        prune-cache: true
 
     - name: Install dependencies
       run: uv sync --all-extras
@@ -49,9 +49,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        version: "latest"
+        prune-cache: true
 
     - name: Install dependencies
       run: uv sync --all-extras
@@ -79,9 +79,9 @@ jobs:
         python-version: '3.11'
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        version: "latest"
+        prune-cache: true
 
     - name: Install dependencies
       run: uv sync --all-extras
@@ -112,9 +112,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        version: "latest"
+        prune-cache: true
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
@@ -148,9 +148,9 @@ jobs:
         python-version: '3.11'
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        version: "latest"
+        prune-cache: true
 
     - name: Install dependencies
       run: uv sync --all-extras
