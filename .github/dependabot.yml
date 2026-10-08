@@ -1,0 +1,57 @@
+# Dependabot version-update PRs. Complements (does not replace) Dependabot
+# security updates, which open PRs for vulnerability alerts independently.
+#
+# `build(deps):` keeps each PR typed as a build change, so a bump waits for a
+# human review. A release has a week to draw a follow-up fix before it is
+# proposed.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  # Moves uv.lock, and touches pyproject.toml only when a release crosses a
+  # bound. requires-python stays at 3.11 for TouchDesigner, so the lock
+  # resolves each package to its last 3.11-compatible release.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: increase-if-necessary
+    cooldown:
+      default-days: 7
+    # ruff and pyright bring new findings that need code edits, so they do
+    # not hold up the library bumps.
+    groups:
+      python-lint:
+        patterns: ["ruff", "pyright"]
+      python-packages:
+        patterns: ["*"]
+        exclude-patterns: ["ruff", "pyright"]
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  # Hook revs in .pre-commit-config.yaml. Keep the ruff-pre-commit and
+  # pyright-python revs equal to the ruff and pyright versions in uv.lock.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit-hooks:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build"
+      include: "scope"

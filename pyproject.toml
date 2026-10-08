@@ -153,6 +153,9 @@ reportPropertyTypeMismatch = true
 reportImportCycles = true
 
 
+[tool.uv]
+required-version = ">=0.12"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
