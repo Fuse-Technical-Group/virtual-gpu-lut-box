@@ -207,11 +207,11 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.5.0"
+version = "8.5.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c7/0e/7fa0ef50764b67090eca4114772a2abf8b6148198475e54c660b97caeee6/click-8.5.0.tar.gz", hash = "sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34", size = 382235, upload-time = "2026-08-26T13:33:14.56Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/37/edbf1b0707709013c0cf2e8317e03d97ed29bf4cac709fe328904ae92a38/click-8.5.1.tar.gz", hash = "sha256:9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4", size = 399151, upload-time = "2026-11-06T17:37:01.021Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl", hash = "sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360", size = 125251, upload-time = "2026-08-26T13:33:12.928Z" },
+    { url = "https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl", hash = "sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37", size = 126163, upload-time = "2026-11-06T17:36:59.287Z" },
 ]
 
 [[package]]
@@ -379,12 +379,12 @@ wheels = [
 
 [[package]]
 name = "glfw"
-version = "2.10.2"
+version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/62/096058bcb4b4fb28f7ecd28fb048f07969d90b243c417af5f6d09d45a0c2/glfw-2.10.2.tar.gz", hash = "sha256:5d2cf97c66bc42a6b583be0e307eae5a3945438322e2ed0c5e4f14dc251d693d", size = 36307, upload-time = "2026-07-21T14:42:36.732Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/89/fa9cb2611314b84ffa68d76f154e1e508971d6e402b14bd2152684e35e5d/glfw-2.11.0.tar.gz", hash = "sha256:4bd3a462ed02ae25455dceaeb76d154faf08b48962c0cb2cf685419a34a71305", size = 36404, upload-time = "2026-10-16T20:18:53.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/80/5e575ec14f54dc0a644e7215985b9ee7c5044fcc3594d6b83dfdeb04ccd4/glfw-2.10.2-py2.py3-none-macosx_10_6_intel.whl", hash = "sha256:a04d25bb535a3a29e173ea1abd658e161681b5d3816e00bc51c122f74cd7fa3a", size = 110295, upload-time = "2026-07-21T14:42:25.625Z" },
-    { url = "https://files.pythonhosted.org/packages/e5/2e/22216db429690aa51fa87d2e2b5e6b610c5a37b9df7768da2927f52f8704/glfw-2.10.2-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:c000b8a5e5fb4374b2c18d12347255ccb92001b9bcf80ef74c56072acbb98fe3", size = 107146, upload-time = "2026-07-21T14:42:26.854Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/65/c728be098d0a2fb1c81070386384640e577ec2db096e885d14ba8c3a0ffd/glfw-2.11.0-py2.py3-none-macosx_10_6_intel.whl", hash = "sha256:4f40b141657b014148893f3b8950906389f9d4d3b2bced41fbefcdcda776e9ad", size = 110341, upload-time = "2026-10-16T08:46:24.538Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/2c/dc36e841a6a0db69c19db71a8fb4bbb211924bcf587735caea8afdd230ed/glfw-2.11.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:7405d3e3041add442e40a15ef5a880178ff90f486d576a82e112240c66f59555", size = 107194, upload-time = "2026-10-16T08:46:25.797Z" },
 ]
 
 [[package]]
@@ -642,7 +642,7 @@ wheels = [
 
 [[package]]
 name = "mkdocs-material"
-version = "9.7.7"
+version = "9.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "babel" },
@@ -657,9 +657,9 @@ dependencies = [
     { name = "pymdown-extensions" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/cd/c05d3a530ba7934f144fb45f7203cd236adc25c7bdcc34673d202f4b0278/mkdocs_material-9.7.7.tar.gz", hash = "sha256:c0649c065b1b0512d60aad8c10f947f8e455284475239b364b610f2deb4d0855", size = 4097923, upload-time = "2026-07-17T16:21:33.156Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/b2/dee93bf227b481e28ba4d800c322dffc41b16d524ae84ca8d85aa7ec3a81/mkdocs_material-9.8.1.tar.gz", hash = "sha256:cddae7d77bb98d1d347aa68ee252ab40926171a1b34ba8777c44e16de9629f00", size = 4160481, upload-time = "2026-11-07T13:05:04.482Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/21/17c1bc9e6f47c972ad66fb2ac2568f99f90f1207eeb6fc3b34d094dba7b5/mkdocs_material-9.7.7-py3-none-any.whl", hash = "sha256:8ea9bb1737a5b524a5f9dcf2e1b4ebda8274ae3008aa7845720a97083bef708f", size = 9305438, upload-time = "2026-07-17T16:21:30.017Z" },
+    { url = "https://files.pythonhosted.org/packages/70/05/a4011d6a6af86cd03059a5b165cd69a3695ef4bd7bd477c66befe399640a/mkdocs_material-9.8.1-py3-none-any.whl", hash = "sha256:2115af67ee680e1398bdd0ea02e517721e4bba88b342503a93f97ea8eb3de51c", size = 9302217, upload-time = "2026-11-07T13:05:00.747Z" },
 ]
 
 [[package]]
@@ -805,7 +805,7 @@ wheels = [
 
 [[package]]
 name = "pre-commit"
-version = "4.6.2"
+version = "4.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cfgv" },
@@ -814,9 +814,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/c3/6965c2690ddce885ec75121572d065a5b94c5a5d8d3e657927ecda9fd715/pre_commit-4.7.0.tar.gz", hash = "sha256:1f3deee12b914c8fa184bd2b5953391c2e4f36763e403d4a23dc9983fa7c6e86", size = 198120, upload-time = "2026-10-12T20:45:40.32Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/e2/bbb7129c9e7999a6b8ee9cca3b66486c25c423ab5a75f34071798b74ce94/pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e", size = 226202, upload-time = "2026-08-10T22:07:16.942Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/83/ce0a196e4f7b20b11ce3aa1fc72fb973f64b7628d51c1b8aebad37fb7f81/pre_commit-4.7.0-py2.py3-none-any.whl", hash = "sha256:2e229038ad3656081b70c27913157e4b636ef306f643f024a8a8e3f0f7b2f877", size = 226261, upload-time = "2026-10-12T20:45:38.858Z" },
 ]
 
 [[package]]
@@ -970,7 +970,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "9.1.1"
+version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -979,9 +979,9 @@ dependencies = [
     { name = "pluggy" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedeac2ec51abc1f8cae4fee4ec63899a0999016229a0f2a/pytest-9.2.0.tar.gz", hash = "sha256:97c4f3b1f3c7414aa36465e09b8220f1d03627993bd51b1282e193753c80557b", size = 1797555, upload-time = "2026-10-27T21:30:20.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
+    { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
 ]
 
 [[package]]
@@ -1110,7 +1110,7 @@ wheels = [
 
 [[package]]
 name = "reuse"
-version = "6.2.0"
+version = "6.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1121,7 +1121,10 @@ dependencies = [
     { name = "python-magic" },
     { name = "tomlkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/05/35/298d9410b3635107ce586725cdfbca4c219c08d77a3511551f5e479a78db/reuse-6.2.0.tar.gz", hash = "sha256:4feae057a2334c9a513e6933cdb9be819d8b822f3b5b435a36138bd218897d23", size = 1615611, upload-time = "2025-10-27T15:25:46.336Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/d9/b8dd83a81030450e5eb11d337c3d362769b57c763b388bfc849bfa76bbd9/reuse-6.3.0.tar.gz", hash = "sha256:5a6ca437057c07ca22a67256520e2783ab03b5524d3a4535603c3d49e3d4b001", size = 524060, upload-time = "2026-10-30T13:34:54.743Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/28/2206a2fa719f303b40b2bc2b50ccf06f59d64d22f2106258b2cf141e4db3/reuse-6.3.0-py3-none-any.whl", hash = "sha256:be6b598aa6d5cdf44af0da265572a72f0adcd30033857af874fd8607188259c1", size = 348530, upload-time = "2026-10-30T13:34:52.686Z" },
+]
 
 [[package]]
 name = "rich"
