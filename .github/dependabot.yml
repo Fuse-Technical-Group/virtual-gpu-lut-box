@@ -1,11 +1,16 @@
 # Dependabot version-update PRs. Complements (does not replace) Dependabot
 # security updates, which open PRs for vulnerability alerts independently.
 #
-# `build(deps):` keeps each PR typed as a build change, so a bump waits for a
-# human review. A release has a week to draw a follow-up fix before it is
-# proposed.
+# `build(deps):` keeps each PR out of flywheel's auto_merge types
+# (.flywheel.yml), so a bump waits for a human review. A release has a week
+# to draw a follow-up fix before it is proposed. Major updates open on their
+# own, outside the minor-and-patch groups.
 version: 2
 updates:
+  # Actions are SHA-pinned with a trailing version comment; Dependabot bumps
+  # the SHA and rewrites the comment. The notation reusable workflow is pinned
+  # to a notation--v* tag, which Dependabot does not track, so bump that by
+  # hand.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -13,8 +18,9 @@ updates:
     cooldown:
       default-days: 7
     groups:
-      github-actions:
+      github-actions-minor-patch:
         patterns: ["*"]
+        update-types: [minor, patch]
     commit-message:
       prefix: "build"
       include: "scope"
@@ -37,6 +43,7 @@ updates:
       python-packages:
         patterns: ["*"]
         exclude-patterns: ["ruff", "pyright"]
+        update-types: [minor, patch]
     commit-message:
       prefix: "build"
       include: "scope"
@@ -52,6 +59,7 @@ updates:
     groups:
       pre-commit-hooks:
         patterns: ["*"]
+        update-types: [minor, patch]
     commit-message:
       prefix: "build"
       include: "scope"

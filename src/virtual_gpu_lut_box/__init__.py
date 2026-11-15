@@ -13,7 +13,7 @@ Simple usage:
     server.start()  # Starts OpenGradeIO server with GPU streaming
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "Fuse Technical Group"
 
 # Public API - minimal surface area
