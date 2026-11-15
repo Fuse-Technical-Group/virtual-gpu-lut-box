@@ -95,10 +95,7 @@ I/O does not stall your main application.
 from virtual_gpu_lut_box import VirtualGPULUTBoxServer
 
 # Start OpenGradeIO server with GPU streaming (default: 0.0.0.0:8089)
-server = VirtualGPULUTBoxServer(
-    stream_name="OpenGradeIO-LUT",
-    verbose=False
-)
+server = VirtualGPULUTBoxServer(stream_name="OpenGradeIO-LUT", verbose=False)
 
 server.start()
 # Server runs in background process (non-blocking)
